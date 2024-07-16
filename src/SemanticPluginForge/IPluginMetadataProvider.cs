@@ -3,7 +3,7 @@
 namespace SemanticPluginForge;
 
 // TODO: Add use case support, to allow different metadata for different use cases.
-public interface IMetadataProvider
+public interface IPluginMetadataProvider
 {
     string GetPluginDescription(KernelPlugin plugin);
 

@@ -74,7 +74,7 @@ public static class AddPluginExtensions
 
     public static KernelPlugin PatchKernelPluginWithMetadata(this IServiceProvider serviceProvider, KernelPlugin kernelPlugin)
     {
-        var metadataProvider = serviceProvider.GetRequiredService<IMetadataProvider>();
+        var metadataProvider = serviceProvider.GetRequiredService<IPluginMetadataProvider>();
         var builder = new PluginBuilder(metadataProvider);
         return builder.PatchKernelPluginWithMetadata(kernelPlugin);
     }

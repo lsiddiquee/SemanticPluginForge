@@ -2,9 +2,9 @@
 
 namespace SemanticPluginForge;
 
-public class PluginBuilder(IMetadataProvider metadataProvider) : IPluginBuilder
+public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBuilder
 {
-    private readonly IMetadataProvider _metadataProvider = metadataProvider;
+    private readonly IPluginMetadataProvider _metadataProvider = metadataProvider;
 
     public KernelPlugin PatchKernelPluginWithMetadata(KernelPlugin kernelPlugin)
     {

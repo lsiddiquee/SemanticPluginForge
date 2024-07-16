@@ -2,7 +2,7 @@ using Microsoft.SemanticKernel;
 
 namespace SemanticPluginForge;
 
-public class DefaultMetadataProvider : IMetadataProvider
+public class DefaultMetadataProvider : IPluginMetadataProvider
 {
     public string GetPluginDescription(KernelPlugin plugin) => plugin.Description;
 
