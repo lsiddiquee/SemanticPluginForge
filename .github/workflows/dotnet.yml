@@ -37,19 +37,19 @@ jobs:
     - name: Generate Test Report
       uses: danielpalme/ReportGenerator-GitHub-Action@5.2.4
       with:
-        reports: "./TestResults/Coverage/**/coverage.cobertura.xml"
-        targetdir: "./TestResults/Reports"
+        reports: "./src/TestResults/Coverage/**/coverage.cobertura.xml"
+        targetdir: "./src/TestResults/Reports"
         reporttypes: "JsonSummary"
 
     - name: Upload coverage report artifact
       uses: actions/upload-artifact@v4
       with:
         name: CoverageReport
-        path: ./TestResults/Coverage
+        path: ./src/TestResults/Coverage
 
     - name: Check code coverage
       env:
-        REPORT_PATH: ./TestResults/Reports/Summary.json
+        REPORT_PATH: ./src/TestResults/Reports/Summary.json
       run: |
         THRESHOLD=80
         COVERAGE=$(jq '.coverage.line.covered' < ./TestResults/Reports/Summary.json)
