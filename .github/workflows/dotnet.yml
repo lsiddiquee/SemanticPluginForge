@@ -12,6 +12,9 @@ on:
 jobs:
   build:
 
+    permissions:
+      checks: write
+
     runs-on: ubuntu-latest
 
     steps:
@@ -21,8 +24,15 @@ jobs:
       with:
         dotnet-version: 8.0.x
     - name: Restore dependencies
+      working-directory: ./src/
       run: dotnet restore
     - name: Build
+      working-directory: ./src/
       run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+    - name: Test Report
+      uses: zyborg/dotnet-tests-report@v1
+      with:
+        project_path: ./src/SemanticPluginForge.UnitTests
+        report_name: unit-tests
+        report_title: Unit Tests
+        github_token: ${{ secrets.GITHUB_TOKEN }}
