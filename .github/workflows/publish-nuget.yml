@@ -1,0 +1,38 @@
+name: Publish NuGet Package
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+    - name: Restore dependencies
+      working-directory: ./src/
+      run: dotnet restore
+    - name: Extract version from release tag
+      id: extract_version
+      run: |
+        VERSION=${{ github.event.release.tag_name }}
+        VERSION=${VERSION#v} # Remove 'v' prefix if present
+        echo "Version: $VERSION"
+        echo "::set-output name=VERSION::$VERSION"
+    - name: Pack the project
+      working-directory: ./src/
+      run: dotnet pack --configuration Release --output ./nupkg /p:VersionPrefix=$VERSION
+    - name: Publish to NuGet
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push ./nupkg/*.nupkg -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json
+    - name: Push new tag to GitHub (if needed)
+      uses: ad-m/github-push-action@v0.6.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        tags: true
