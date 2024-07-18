@@ -52,7 +52,7 @@ jobs:
         REPORT_PATH: ./src/TestResults/Reports/Summary.json
       run: |
         THRESHOLD=80
-        COVERAGE=$(jq 'summary.methodcoverage' < $REPORT_PATH)
+        COVERAGE=$(jq '.summary.methodcoverage' < $REPORT_PATH)
         echo "Coverage: $COVERAGE%"
         if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
           echo "Code coverage ($COVERAGE%) is below the threshold ($THRESHOLD%)"
