@@ -1,6 +1,3 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
 name: .NET
 
 on:
@@ -19,20 +16,46 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+
     - name: Restore dependencies
       working-directory: ./src/
       run: dotnet restore
+
     - name: Build
       working-directory: ./src/
       run: dotnet build --no-restore
-    - name: Test Report
-      uses: zyborg/dotnet-tests-report@v1
+
+    - name: Test
+      working-directory: ./src/
+      run: dotnet test --no-build -v Normal --logger trx --collect:"XPlat Code Coverage" --results-directory:"TestResults/Coverage/" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByAttribute=GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute
+
+    - name: Generate Test Report
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.2.4
       with:
-        project_path: ./src/SemanticPluginForge.UnitTests
-        report_name: unit-tests
-        report_title: Unit Tests
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        reports: "./TestResults/Coverage/**/coverage.cobertura.xml"
+        targetdir: "./TestResults/Reports"
+        reporttypes: "JsonSummary"
+
+    - name: Upload coverage report artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: CoverageReport
+        path: ./TestResults/Coverage
+
+    - name: Check code coverage
+      env:
+        REPORT_PATH: ./TestResults/Reports/Summary.json
+      run: |
+        THRESHOLD=80
+        COVERAGE=$(jq '.coverage.line.covered' < ./TestResults/Reports/Summary.json)
+        COVERAGE=$(echo "$COVERAGE * 100" | bc) # Convert to percentage
+        echo "Coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
+          echo "Code coverage ($COVERAGE%) is below the threshold ($THRESHOLD%)"
+          exit 1
+        fi
