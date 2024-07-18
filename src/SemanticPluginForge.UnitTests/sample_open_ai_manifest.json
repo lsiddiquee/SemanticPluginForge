@@ -9,7 +9,7 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://raw.githubusercontent.com/sisbell/chatgpt-plugin-store/main/specs/askcars.ai.yaml",
+    "url": "https://raw.githubusercontent.com/lsiddiquee/SemanticPluginForge/main/src/SemanticPluginForge.UnitTests/sample_open_api_spec.json",
     "is_user_authenticated": false
   },
   "logo_url": "http://api.library.com/v1/logo.png",

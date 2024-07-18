@@ -21,11 +21,9 @@ namespace SemanticPluginForge.UnitTests
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var pluginName = "SamplePluginFromOpenApi";
             var filePath = "sample_open_api_spec.json";
-            var executionParameters = new OpenApiFunctionExecutionParameters();
-            var cancellationToken = CancellationToken.None;
 
             // Act
-            var result = await serviceProvider.AddFromOpenApiWithMetadataAsync(pluginName, filePath, executionParameters, cancellationToken);
+            var result = await serviceProvider.AddFromOpenApiWithMetadataAsync(pluginName, filePath);
 
             // Assert
             result.Should().NotBeNull();
@@ -37,18 +35,21 @@ namespace SemanticPluginForge.UnitTests
         public async Task AddFromOpenApiWithMetadataAsync_ShouldAddPluginFromUri()
         {
             // Arrange
-            var serviceProvider = new ServiceCollection().BuildServiceProvider();
-            var uri = new Uri("https://raw.githubusercontent.com/sisbell/chatgpt-plugin-store/main/specs/askcars.ai.yaml");
+            var serviceCollection = new ServiceCollection();
+            var mockMetadataProvider = new Mock<IPluginMetadataProvider>();
+            mockMetadataProvider.Setup(metadataProvider => metadataProvider.GetPluginDescription(It.IsAny<KernelPlugin>())).Returns("Plugin description from metadata provider.");
+            serviceCollection.AddScoped<IPluginMetadataProvider>(sp => mockMetadataProvider.Object);
+            var serviceProvider = serviceCollection.BuildServiceProvider();
+            var uri = new Uri("https://raw.githubusercontent.com/lsiddiquee/SemanticPluginForge/main/src/SemanticPluginForge.UnitTests/sample_open_api_spec.json");
             var pluginName = "SamplePluginFromOpenApi";
-            var executionParameters = new OpenApiFunctionExecutionParameters();
-            var cancellationToken = CancellationToken.None;
 
             // Act
-            var result = await serviceProvider.AddFromOpenApiWithMetadataAsync(pluginName, uri, executionParameters, cancellationToken);
+            var result = await serviceProvider.AddFromOpenApiWithMetadataAsync(pluginName, uri);
 
             // Assert
-            Assert.NotNull(result);
-            // Add your additional assertions here
+            result.Should().NotBeNull();
+            result.Name.Should().Be(pluginName);
+            result.Description.Should().Be("Plugin description from metadata provider.");
         }
 
         [Fact]
@@ -62,11 +63,9 @@ namespace SemanticPluginForge.UnitTests
             var serviceProvider = serviceCollection.BuildServiceProvider();
             var pluginName = "SamplePluginFromOpenApi";
             var stream = File.OpenRead("sample_open_api_spec.json");
-            var executionParameters = new OpenApiFunctionExecutionParameters();
-            var cancellationToken = CancellationToken.None;
 
             // Act
-            var result = await serviceProvider.AddFromOpenApiWithMetadataAsync(pluginName, stream, executionParameters, cancellationToken);
+            var result = await serviceProvider.AddFromOpenApiWithMetadataAsync(pluginName, stream);
 
             // Assert
             result.Should().NotBeNull();
