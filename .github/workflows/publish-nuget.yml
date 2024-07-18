@@ -26,10 +26,11 @@ jobs:
         echo "::set-output name=VERSION::$VERSION"
     - name: Pack the project
       working-directory: ./src/
-      run: |
-        VERSION=${{ steps.extract_version.outputs.VERSION }}
-        dotnet pack --configuration Release --output ./nupkg /p:VersionPrefix=$VERSION
+      env:
+        VERSION: ${{ steps.extract_version.outputs.VERSION }}
+      run: dotnet pack --configuration Release --output ./nupkg /p:VersionPrefix=$VERSION
     - name: Publish to NuGet
+      working-directory: ./src/
       env:
         NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       run: dotnet nuget push ./nupkg/*.nupkg -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json
