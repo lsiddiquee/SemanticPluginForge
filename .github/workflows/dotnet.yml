@@ -29,3 +29,10 @@ jobs:
     - name: Test
       working-directory: ./src/
       run: dotnet test --no-build --verbosity normal
+    - name: Test Report
+      uses: zyborg/dotnet-tests-report@v1
+      with:
+        project_path: ./src/SemanticPluginForge.UnitTests
+        report_name: SemanticPluginForgeUnitTests
+        report_title: Semantic Plugin Forge Unit Tests
+        github_token: ${{ secrets.GITHUB_TOKEN }}
