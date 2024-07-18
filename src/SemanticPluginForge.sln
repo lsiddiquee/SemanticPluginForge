@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticPluginForge.Core", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticPluginForge.OpenAI", "SemanticPluginForge.OpenAI\SemanticPluginForge.OpenAI.csproj", "{91DE9B54-47EB-41DB-9E75-785531CEDFD1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SemanticPluginForge.UnitTests", "SemanticPluginForge.UnitTests\SemanticPluginForge.UnitTests.csproj", "{E9BE33E3-6C20-47E9-945D-72F738939762}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{91DE9B54-47EB-41DB-9E75-785531CEDFD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{91DE9B54-47EB-41DB-9E75-785531CEDFD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{91DE9B54-47EB-41DB-9E75-785531CEDFD1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E9BE33E3-6C20-47E9-945D-72F738939762}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E9BE33E3-6C20-47E9-945D-72F738939762}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E9BE33E3-6C20-47E9-945D-72F738939762}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E9BE33E3-6C20-47E9-945D-72F738939762}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

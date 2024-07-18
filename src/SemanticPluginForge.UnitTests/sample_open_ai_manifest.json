@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Library API",
+  "name_for_model": "library_api",
+  "description_for_human": "An API to manage a library of books. Retrieve all books or get details of a specific book by its ID.",
+  "description_for_model": "Use this API to get a list of all books or retrieve details of a specific book by its ID from the library.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://raw.githubusercontent.com/sisbell/chatgpt-plugin-store/main/specs/askcars.ai.yaml",
+    "is_user_authenticated": false
+  },
+  "logo_url": "http://api.library.com/v1/logo.png",
+  "contact_email": "support@library.com",
+  "legal_info_url": "http://api.library.com/v1/legal"
+}

@@ -39,11 +39,11 @@ public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBu
             }
         }
 
-        string description = _metadataProvider.GetPluginDescription(kernelPlugin);
+        var newDescription = _metadataProvider.GetPluginDescription(kernelPlugin);
 
-        if (pluginAltered || description != kernelPlugin.Description)
+        if (pluginAltered || (newDescription != null && newDescription != kernelPlugin.Description))
         {
-            return KernelPluginFactory.CreateFromFunctions(kernelPlugin.Name, description, functions);
+            return KernelPluginFactory.CreateFromFunctions(kernelPlugin.Name, newDescription ?? kernelPlugin.Description, functions);
         }
 
         return kernelPlugin;

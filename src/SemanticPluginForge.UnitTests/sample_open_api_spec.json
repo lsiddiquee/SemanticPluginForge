@@ -1,0 +1,114 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Library API",
+    "description": "An API to manage a library of books",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://api.library.com/v1",
+      "description": "Library API server"
+    }
+  ],
+  "paths": {
+    "/books": {
+      "get": {
+        "summary": "Get all books",
+        "description": "Retrieve a list of all books in the library",
+        "responses": {
+          "200": {
+            "description": "A list of books",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Book"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/books/{bookId}": {
+      "get": {
+        "summary": "Get book by ID",
+        "description": "Retrieve a book by its ID",
+        "parameters": [
+          {
+            "name": "bookId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the book to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A book object",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Book"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Book not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Book": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "1"
+          },
+          "title": {
+            "type": "string",
+            "example": "1984"
+          },
+          "author": {
+            "type": "string",
+            "example": "George Orwell"
+          },
+          "publishedDate": {
+            "type": "string",
+            "format": "date",
+            "example": "1949-06-08"
+          },
+          "isbn": {
+            "type": "string",
+            "example": "0451524934"
+          },
+          "pages": {
+            "type": "integer",
+            "example": 328
+          },
+          "language": {
+            "type": "string",
+            "example": "English"
+          }
+        },
+        "required": ["id", "title", "author"]
+      }
+    }
+  }
+}

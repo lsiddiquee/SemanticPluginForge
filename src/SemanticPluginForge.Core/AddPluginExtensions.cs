@@ -65,7 +65,7 @@ public static class AddPluginExtensions
         return kernelPlugin;
     }
 
-    public static KernelPlugin CreateFromFunctionsWithMetadata(IServiceProvider serviceProvider, string pluginName, IEnumerable<KernelFunction>? functions)
+    private static KernelPlugin CreateFromFunctionsWithMetadata(IServiceProvider serviceProvider, string pluginName, IEnumerable<KernelFunction>? functions)
     {
         var kernelPlugin = KernelPluginFactory.CreateFromFunctions(pluginName, functions);
 
