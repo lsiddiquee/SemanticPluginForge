@@ -28,7 +28,7 @@ jobs:
       working-directory: ./src/
       env:
         VERSION: ${{ steps.extract_version.outputs.VERSION }}
-      run: dotnet pack --configuration Release --output ./nupkg /p:VersionPrefix=$VERSION
+      run: dotnet pack --configuration Release --output ./nupkg --version-prefix $VERSION
     - name: Publish to NuGet
       working-directory: ./src/
       env:
