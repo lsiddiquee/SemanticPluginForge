@@ -2,6 +2,8 @@ using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Moq;
 
+using SemanticPluginForge.Core;
+
 namespace SemanticPluginForge.UnitTests
 {
     public class PluginBuilderTests

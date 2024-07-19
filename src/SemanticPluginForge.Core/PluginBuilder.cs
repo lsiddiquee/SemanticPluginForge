@@ -1,19 +1,24 @@
 ﻿using Microsoft.SemanticKernel;
 
-namespace SemanticPluginForge;
+namespace SemanticPluginForge.Core;
 
+/// <summary>
+/// Class for building a plugin with metadata.
+/// </summary>
+/// <param name="metadataProvider">The metadata provider to retrieve external metadata to use to update the plugin.</param>
 public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBuilder
 {
     private readonly IPluginMetadataProvider _metadataProvider = metadataProvider;
 
-    public KernelPlugin PatchKernelPluginWithMetadata(KernelPlugin kernelPlugin)
+    /// <inheritdoc/>>
+    public KernelPlugin PatchKernelPluginWithMetadata(KernelPlugin plugin)
     {
         bool pluginAltered = false;
 
         var functions = new List<KernelFunction>();
-        foreach (var function in kernelPlugin)
+        foreach (var function in plugin)
         {
-            var functionMeta = _metadataProvider.GetFunctionMetadata(kernelPlugin, function.Metadata);
+            var functionMeta = _metadataProvider.GetFunctionMetadata(plugin, function.Metadata);
             if (functionMeta != null)
             {
                 pluginAltered = true;
@@ -39,13 +44,13 @@ public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBu
             }
         }
 
-        var newDescription = _metadataProvider.GetPluginDescription(kernelPlugin);
+        var newDescription = _metadataProvider.GetPluginDescription(plugin);
 
-        if (pluginAltered || (newDescription != null && newDescription != kernelPlugin.Description))
+        if (pluginAltered || (newDescription != null && newDescription != plugin.Description))
         {
-            return KernelPluginFactory.CreateFromFunctions(kernelPlugin.Name, newDescription ?? kernelPlugin.Description, functions);
+            return KernelPluginFactory.CreateFromFunctions(plugin.Name, newDescription ?? plugin.Description, functions);
         }
 
-        return kernelPlugin;
+        return plugin;
     }
 }
