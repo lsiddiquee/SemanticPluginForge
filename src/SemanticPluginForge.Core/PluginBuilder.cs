@@ -31,9 +31,21 @@ public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBu
                 var options = new KernelFunctionFromMethodOptions
                 {
                     FunctionName = function.Name,
-                    Description = functionMeta.Description,
-                    Parameters = functionMeta.Parameters,
-                    ReturnParameter = functionMeta.ReturnParameter
+                    Description = functionMeta.Description ?? function.Metadata.Description,
+                    Parameters = function.Metadata.Parameters.Select(p =>
+                    {
+                        var paramMeta = functionMeta.Parameters?.FirstOrDefault(paramMeta => paramMeta.Name == p.Name);
+                        return paramMeta == null ? p : new KernelParameterMetadata(p)
+                        {
+                            Description = paramMeta.Description ?? p.Description,
+                            IsRequired = paramMeta.IsRequired ?? p.IsRequired,
+                            DefaultValue = paramMeta.DefaultValue ?? p.DefaultValue
+                        };
+                    }),
+                    ReturnParameter = functionMeta.ReturnParameter == null ? function.Metadata.ReturnParameter : new KernelReturnParameterMetadata(function.Metadata.ReturnParameter)
+                    {
+                        Description = functionMeta.ReturnParameter.Description ?? function.Metadata.Description,
+                    }
                 };
 
                 functions.Add(KernelFunctionFactory.CreateFromMethod(method, options));
@@ -44,11 +56,11 @@ public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBu
             }
         }
 
-        var newDescription = _metadataProvider.GetPluginDescription(plugin);
+        var pluginMetadata = _metadataProvider.GetPluginMetadata(plugin);
 
-        if (pluginAltered || (newDescription != null && newDescription != plugin.Description))
+        if (pluginAltered || (pluginMetadata?.Description != null && pluginMetadata?.Description != plugin.Description))
         {
-            return KernelPluginFactory.CreateFromFunctions(plugin.Name, newDescription ?? plugin.Description, functions);
+            return KernelPluginFactory.CreateFromFunctions(plugin.Name, pluginMetadata?.Description ?? plugin.Description, functions);
         }
 
         return plugin;
