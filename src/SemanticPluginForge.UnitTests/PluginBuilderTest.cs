@@ -2,6 +2,8 @@ using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Moq;
 
+using SemanticPluginForge.Core;
+
 namespace SemanticPluginForge.UnitTests
 {
     public class PluginBuilderTests
@@ -11,9 +13,9 @@ namespace SemanticPluginForge.UnitTests
         {
             // Arrange
             var metadataProviderMock = new Mock<IPluginMetadataProvider>();
-            metadataProviderMock.Setup(p => p.GetPluginDescription(It.IsAny<KernelPlugin>())).Returns(null as string);
+            metadataProviderMock.Setup(p => p.GetPluginMetadata(It.IsAny<KernelPlugin>())).Returns(null as PluginMetadata);
             metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
-                .Returns(null as KernelFunctionMetadata);
+                .Returns(null as FunctionMetadata);
 
             var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
             var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
@@ -32,7 +34,7 @@ namespace SemanticPluginForge.UnitTests
         {
             // Arrange
             var metadataProviderMock = new Mock<IPluginMetadataProvider>();
-            metadataProviderMock.Setup(p => p.GetPluginDescription(It.IsAny<KernelPlugin>())).Returns<KernelPlugin>(p => "Plugin description altered using patch mechanism.");
+            metadataProviderMock.Setup(p => p.GetPluginMetadata(It.IsAny<KernelPlugin>())).Returns<KernelPlugin>(p => new PluginMetadata { Description = "Plugin description altered using patch mechanism." });
 
             var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
             var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
@@ -52,7 +54,7 @@ namespace SemanticPluginForge.UnitTests
             // Arrange
             var metadataProviderMock = new Mock<IPluginMetadataProvider>();
             metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
-                .Returns<KernelPlugin, KernelFunctionMetadata>((p, m) => new KernelFunctionMetadata(m) { Description = "Function description altered using patch mechanism." });
+                .Returns<KernelPlugin, KernelFunctionMetadata>((p, m) => new FunctionMetadata(m.Name) { Description = "Function description altered using patch mechanism." });
 
             var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
             var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
@@ -71,9 +73,9 @@ namespace SemanticPluginForge.UnitTests
         {
             // Arrange
             var metadataProviderMock = new Mock<IPluginMetadataProvider>();
-            metadataProviderMock.Setup(p => p.GetPluginDescription(It.IsAny<KernelPlugin>())).Returns<KernelPlugin>(p => "Plugin description altered using patch mechanism.");
+            metadataProviderMock.Setup(p => p.GetPluginMetadata(It.IsAny<KernelPlugin>())).Returns<KernelPlugin>(p => new PluginMetadata { Description = "Plugin description altered using patch mechanism." });
             metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
-                .Returns<KernelPlugin, KernelFunctionMetadata>((p, m) => new KernelFunctionMetadata(m) { Description = "Function description altered using patch mechanism." });
+                .Returns<KernelPlugin, KernelFunctionMetadata>((p, m) => new FunctionMetadata(m.Name) { Description = "Function description altered using patch mechanism." });
 
             var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
             var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());

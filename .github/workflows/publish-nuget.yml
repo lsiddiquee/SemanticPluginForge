@@ -20,23 +20,28 @@ jobs:
     - name: Extract version from release tag
       id: extract_version
       run: |
-        VERSION=${{ github.event.release.tag_name }}
-        VERSION=${VERSION#v} # Remove 'v' prefix if present
-        echo "Version: $VERSION"
-        echo "::set-output name=VERSION::$VERSION"
+        VERSION_PREFIX=${{ github.event.release.tag_name }}
+        VERSION_PREFIX=${VERSION_PREFIX#v} # Remove 'v' prefix if present
+        echo "Version: $VERSION_PREFIX"
+        echo "::set-output name=VERSION_PREFIX::$VERSION_PREFIX"
     - name: Build
       working-directory: ./src/
       env:
-        VERSION: ${{ steps.extract_version.outputs.VERSION }}
-      run: dotnet build --configuration Release --no-restore /p:VersionPrefix=$VERSION
+        VERSION_PREFIX: ${{ steps.extract_version.outputs.VERSION_PREFIX }}
+      run: dotnet build --configuration Release --no-restore /p:VersionPrefix=$VERSION_PREFIX
     - name: Test
       working-directory: ./src/
       run: dotnet test
     - name: Pack
       working-directory: ./src/
       env:
-        VERSION: ${{ steps.extract_version.outputs.VERSION }}
-      run: dotnet pack --configuration Release --no-build --output ./nupkg /p:VersionPrefix=$VERSION
+        VERSION_PREFIX: ${{ steps.extract_version.outputs.VERSION_PREFIX }}
+      run: dotnet pack --configuration Release --no-build --output ./nupkg /p:VersionPrefix=$VERSION_PREFIX
+    - name: Upload NuGet packages as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages
+        path: ./src/nupkg/*.nupkg
     - name: Publish to NuGet
       working-directory: ./src/
       env:

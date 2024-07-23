@@ -29,12 +29,12 @@ Implement the `IPluginMetadataProvider` interface. The following code is a sampl
 ```csharp
 public class CustomTimeYearMetadataProvider : IPluginMetadataProvider
 {
-    public string GetPluginDescription(KernelPlugin plugin) => plugin.Description;
+    public PluginMetadata? GetPluginMetadata(KernelPlugin plugin) => null;
 
-    public KernelFunctionMetadata GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
+    public FunctionMetadata GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
         plugin.Name == "TimePlugin" && metadata.Name == "Year"
-            ? new KernelFunctionMetadata(metadata) { Description = "Get the current year in 4-digit number format." }
-            : metadata;
+            ? new FunctionMetadata(metadata.Name) { Description = "Get the current year in 4-digit number format." }
+            : null;
 }
 ```
 

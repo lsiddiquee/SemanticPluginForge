@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.SemanticKernel;
 using Moq;
 
+using SemanticPluginForge.Core;
+
 namespace SemanticPluginForge.UnitTests
 {
     public class AddOpenAIPluginExtensionsTests
@@ -113,7 +115,7 @@ namespace SemanticPluginForge.UnitTests
         {
             var serviceCollection = new ServiceCollection();
             var mockMetadataProvider = new Mock<IPluginMetadataProvider>();
-            mockMetadataProvider.Setup(metadataProvider => metadataProvider.GetPluginDescription(It.IsAny<KernelPlugin>())).Returns("Plugin description from metadata provider.");
+            mockMetadataProvider.Setup(metadataProvider => metadataProvider.GetPluginMetadata(It.IsAny<KernelPlugin>())).Returns(new PluginMetadata() { Description = "Plugin description from metadata provider." });
             serviceCollection.AddScoped<IPluginMetadataProvider>(sp => mockMetadataProvider.Object);
             var serviceProvider = serviceCollection.BuildServiceProvider();
             return new Kernel(serviceProvider);
