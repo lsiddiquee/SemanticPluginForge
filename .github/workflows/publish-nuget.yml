@@ -37,12 +37,13 @@ jobs:
       env:
         VERSION_PREFIX: ${{ steps.extract_version.outputs.VERSION_PREFIX }}
       run: dotnet pack --configuration Release --no-build --output ./nupkg /p:VersionPrefix=$VERSION_PREFIX
-    - uses: actions/upload-artifact@v4
+    - name: Upload NuGet packages as artifacts
+      uses: actions/upload-artifact@v4
       with:
-        name: nuget-packagesq
+        name: nuget-packages
         path: ./src/nupkg/*.nupkg
-    # - name: Publish to NuGet
-    #   working-directory: ./src/
-    #   env:
-    #     NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-    #   run: dotnet nuget push ./nupkg/*.nupkg -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json
+    - name: Publish to NuGet
+      working-directory: ./src/
+      env:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+      run: dotnet nuget push ./nupkg/*.nupkg -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json
