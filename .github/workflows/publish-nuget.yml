@@ -41,7 +41,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: nuget-packages
-        path: ./src/nupkg/*.nupkg
+        path: ./src/nupkg/*.*
     - name: Publish to NuGet
       working-directory: ./src/
       env:
