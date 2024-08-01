@@ -27,4 +27,11 @@
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.OpenApi.Extensions" Version="1.15.0-alpha" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
 </Project>

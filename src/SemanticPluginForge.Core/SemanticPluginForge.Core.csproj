@@ -22,4 +22,11 @@
     <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.15.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="README.md">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
 </Project>
