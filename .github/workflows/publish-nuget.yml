@@ -31,7 +31,7 @@ jobs:
       run: dotnet build --configuration Release --no-restore /p:VersionPrefix=$VERSION_PREFIX
     - name: Test
       working-directory: ./src/
-      run: dotnet test
+      run: dotnet test --no-build
     - name: Pack
       working-directory: ./src/
       env:

@@ -58,3 +58,7 @@ jobs:
           echo "Code coverage ($COVERAGE%) is below the threshold ($THRESHOLD%)"
           exit 1
         fi
+
+    - name: Check we can pack
+      working-directory: ./src/
+      run: dotnet pack --configuration Release --no-build --output ./nupkg
