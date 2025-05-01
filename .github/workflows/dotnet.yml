@@ -28,11 +28,11 @@ jobs:
 
     - name: Build
       working-directory: ./src/
-      run: dotnet build --no-restore
+      run: dotnet build --configuration Release --no-restore
 
     - name: Test
       working-directory: ./src/
-      run: dotnet test --no-build -v Normal --logger trx --collect:"XPlat Code Coverage" --results-directory:"TestResults/Coverage/" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByAttribute=GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute
+      run: dotnet test --configuration Release --no-build -v Normal --logger trx --collect:"XPlat Code Coverage" --results-directory:"TestResults/Coverage/" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.ExcludeByAttribute=GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute
 
     - name: Generate Test Report
       uses: danielpalme/ReportGenerator-GitHub-Action@5.2.4
@@ -52,7 +52,7 @@ jobs:
         REPORT_PATH: ./src/TestResults/Reports/Summary.json
       run: |
         THRESHOLD=80
-        COVERAGE=$(jq '.summary.methodcoverage' < $REPORT_PATH)
+        COVERAGE=$(jq '.summary.linecoverage' < $REPORT_PATH)
         echo "Coverage: $COVERAGE%"
         if (( $(echo "$COVERAGE < $THRESHOLD" | bc -l) )); then
           echo "Code coverage ($COVERAGE%) is below the threshold ($THRESHOLD%)"

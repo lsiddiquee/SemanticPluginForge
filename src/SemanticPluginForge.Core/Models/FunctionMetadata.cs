@@ -17,6 +17,11 @@ public class FunctionMetadata(string name)
     public string Name { get; init; } = name;
 
     /// <summary>
+    /// Gets if the function should be suppressed from the plugin.
+    /// </summary>
+    public bool Suppress { get; init; } = false;
+
+    /// <summary>
     /// Gets the description of the function, suitable for use in describing the purpose to a model.
     /// </summary>
     public string? Description { get; init; }

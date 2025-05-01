@@ -55,6 +55,56 @@ var kernelBuilder = services.AddKernel();
 kernelBuilder.Plugins.AddFromTypeWithMetadata<TimePlugin>();
 ```
 
+## Suppressing Functions and Parameters
+
+The library now supports suppressing functions and parameters in plugin metadata. This feature allows you to hide specific functions or parameters from the plugin's consumers while maintaining functionality. For parameters, if a default value is provided, it will be used even when the parameter is suppressed.
+
+### Suppressing a Function
+
+To suppress a function, set the `Suppress` property to `true` in the `FunctionMetadata`.
+
+```csharp
+public class CustomMetadataProvider : IPluginMetadataProvider
+{
+    public PluginMetadata? GetPluginMetadata(KernelPlugin plugin) => null;
+
+    public FunctionMetadata GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
+        plugin.Name == "SamplePlugin" && metadata.Name == "HiddenFunction"
+            ? new FunctionMetadata(metadata.Name) { Suppress = true }
+            : null;
+}
+```
+
+### Suppressing a Parameter
+
+To suppress a parameter, set the `Suppress` property to `true` in the `ParameterMetadata`. If a default value is provided, it will be used.
+
+```csharp
+public class CustomMetadataProvider : IPluginMetadataProvider
+{
+    public PluginMetadata? GetPluginMetadata(KernelPlugin plugin) => null;
+
+    public FunctionMetadata GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
+        plugin.Name == "SamplePlugin" && metadata.Name == "FunctionWithHiddenParameter"
+            ? new FunctionMetadata(metadata.Name)
+            {
+                Parameters = new List<ParameterMetadata>
+                {
+                    new ParameterMetadata("hiddenParam") { Suppress = true, DefaultValue = "default" }
+                }
+            }
+            : null;
+}
+```
+
+#### Additional Notes on Suppressing Parameters
+
+When a parameter is set to `Suppress`, it must either be optional or have a default value provided. This default value can be specified in the underlying implementation or through the metadata provider.
+
+- **Default Value Precedence**: If a default value is provided through the metadata provider, it takes precedence over the default value specified in the original plugin implementation.
+
+This ensures that suppressed parameters are handled gracefully without causing runtime errors.
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
