@@ -9,7 +9,7 @@
 
     <!-- NuGet package properties -->
     <Authors>Likhan Siddiquee</Authors>
-    <Description>A library for extending Semantic Kernel OpenAI and OpenAPI spec plugins with customisable metadata support.</Description>
+    <Description>A library for extending Semantic Kernel OpenAPI spec plugins with customizable metadata support.</Description>
     <PackageTags>semantic kernel plugin metadata</PackageTags>
     <RepositoryUrl>https://github.com/lsiddiquee/SemanticPluginForge</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.OpenApi.Extensions" Version="1.15.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.OpenApi.Extensions" Version="1.48.0-alpha" />
   </ItemGroup>
 
   <ItemGroup>

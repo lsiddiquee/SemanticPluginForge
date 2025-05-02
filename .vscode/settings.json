@@ -1,0 +1,3 @@
+{
+  "dotnet.testSettingsFile": "src/SemanticPluginForge.UnitTests/Test.runsettings"
+}
