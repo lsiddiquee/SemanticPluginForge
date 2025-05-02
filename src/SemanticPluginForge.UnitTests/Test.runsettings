@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage" enabled="true">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>
+            <ModulePath>.*SemanticPluginForge.Core.*</ModulePath>
+            <ModulePath>.*SemanticPluginForge.OpenApi.*</ModulePath>
+          </Include>
+          <Exclude>
+            <ModulePath>.*SemanticPluginForge.UnitTests.*</ModulePath>
+          </Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

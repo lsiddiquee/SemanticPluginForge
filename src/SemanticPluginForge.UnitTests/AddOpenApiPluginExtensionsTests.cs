@@ -9,10 +9,10 @@ using SemanticPluginForge.Core;
 
 namespace SemanticPluginForge.UnitTests
 {
-    public class AddOpenAIPluginExtensionsTests
+    public class AddOpenApiPluginExtensionsTests
     {
         [Fact]
-        public async Task AddFromOpenApiWithMetadataAsync_ShouldAddPluginFromFilePath()
+        public async Task AddFromOpenApiWithMetadataAsync_ShouldAddPluginFromFilePathAsync()
         {
             // Arrange
             var kernel = BuildKernel();
@@ -27,7 +27,7 @@ namespace SemanticPluginForge.UnitTests
         }
 
         [Fact]
-        public async Task AddFromOpenApiWithMetadataAsync_ShouldAddPluginFromUri()
+        public async Task AddFromOpenApiWithMetadataAsync_ShouldAddPluginFromUriAsync()
         {
             // Arrange
             var kernel = BuildKernel();
@@ -42,7 +42,7 @@ namespace SemanticPluginForge.UnitTests
         }
 
         [Fact]
-        public async Task AddFromOpenApiWithMetadataAsync_ShouldAddPluginFromStream()
+        public async Task AddFromOpenApiWithMetadataAsync_ShouldAddPluginFromStreamAsync()
         {
             // Arrange
             var kernel = BuildKernel();
@@ -51,51 +51,6 @@ namespace SemanticPluginForge.UnitTests
 
             // Act
             var result = await kernel.AddFromOpenApiWithMetadataAsync(pluginName, stream);
-
-            // Assert
-            AssertPluginPatchedAndAdded(result, pluginName, kernel);
-        }
-
-        [Fact]
-        public async Task AddFromOpenAIWithMetadataAsync_ShouldAddPluginFromFilePath()
-        {
-            // Arrange
-            var kernel = BuildKernel();
-            var pluginName = "SamplePluginFromOpenApi";
-            var filePath = "sample_open_ai_manifest.json";
-
-            // Act
-            var result = await kernel.AddFromOpenAIWithMetadataAsync(pluginName, filePath);
-
-            // Assert
-            AssertPluginPatchedAndAdded(result, pluginName, kernel);
-        }
-
-        [Fact]
-        public async Task AddFromOpenAIWithMetadataAsync_ShouldAddPluginFromUri()
-        {
-            // Arrange
-            var kernel = BuildKernel();
-            var uri = new Uri("https://raw.githubusercontent.com/lsiddiquee/SemanticPluginForge/main/src/SemanticPluginForge.UnitTests/sample_open_ai_manifest.json");
-            var pluginName = "SamplePluginFromOpenApi";
-
-            // Act
-            var result = await kernel.AddFromOpenAIWithMetadataAsync(pluginName, uri);
-
-            // Assert
-            AssertPluginPatchedAndAdded(result, pluginName, kernel);
-        }
-
-        [Fact]
-        public async Task AddFromOpenAIWithMetadataAsync_ShouldAddPluginFromStream()
-        {
-            // Arrange
-            var kernel = BuildKernel();
-            var pluginName = "SamplePluginFromOpenApi";
-            var stream = File.OpenRead("sample_open_ai_manifest.json");
-
-            // Act
-            var result = await kernel.AddFromOpenAIWithMetadataAsync(pluginName, stream);
 
             // Assert
             AssertPluginPatchedAndAdded(result, pluginName, kernel);

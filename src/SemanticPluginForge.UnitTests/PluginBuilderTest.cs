@@ -210,7 +210,7 @@ public class PluginBuilderTests
     }
 
     [Fact]
-    public async Task PatchKernelPluginWithMetadata_UsesCorrectDefault_SuppressRequiredParameterWithDefault()
+    public async Task PatchKernelPluginWithMetadata_UsesCorrectDefault_SuppressRequiredParameterWithDefaultAsync()
     {
         // 
         var metadataProviderMock = new Mock<IPluginMetadataProvider>();
@@ -242,7 +242,7 @@ public class PluginBuilderTests
     }
 
     [Fact]
-    public async Task PatchKernelPluginWithMetadata_UsesCorrectDefault_SuppressOptionalParameterWithDefault()
+    public async Task PatchKernelPluginWithMetadata_UsesCorrectDefault_SuppressOptionalParameterWithDefaultAsync()
     {
         // 
         var metadataProviderMock = new Mock<IPluginMetadataProvider>();
@@ -262,7 +262,7 @@ public class PluginBuilderTests
     }
 
     [Fact]
-    public async Task PatchKernelPluginWithMetadata_UsesCorrectDefault_SuppressOptionalParameterWithDefaultOverride()
+    public async Task PatchKernelPluginWithMetadata_UsesCorrectDefault_SuppressOptionalParameterWithDefaultOverrideAsync()
     {
         // 
         var metadataProviderMock = new Mock<IPluginMetadataProvider>();

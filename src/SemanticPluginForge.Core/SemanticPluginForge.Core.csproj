@@ -8,7 +8,7 @@
 
     <!-- NuGet package properties -->
     <Authors>Likhan Siddiquee</Authors>
-    <Description>A library for extending Semantic Kernel plugins with customisable metadata support.</Description>
+    <Description>A library for extending Semantic Kernel plugins with customizable metadata support.</Description>
     <PackageTags>semantic kernel plugin metadata</PackageTags>
     <RepositoryUrl>https://github.com/lsiddiquee/SemanticPluginForge</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -19,7 +19,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.15.1" />
+    <PackageReference Include="Microsoft.SemanticKernel.Core" Version="1.48.0" />
   </ItemGroup>
 
   <ItemGroup>
