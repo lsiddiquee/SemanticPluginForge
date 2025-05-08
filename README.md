@@ -149,25 +149,14 @@ public class CustomMetadataProvider : IPluginMetadataProvider
 **Usage Example:**
 
 ```csharp
-var serviceProvider = new ServiceCollection()
-    .AddSingleton<IPluginMetadataProvider, CustomMetadataProvider>()
-    .BuildServiceProvider();
-
-var targetObject = new ShortDate();
-var kernelBuilder = services.AddKernel();
-kernelBuilder.Plugins.AddFromClrObjectWithMetadata(targetObject, "ShortDatePlugin");```
+kernelBuilder.Plugins.AddFromClrObjectWithMetadata(new ShortDate(), "ShortDatePlugin");
+```
 
 ### CreateFromClrTypeWithMetadata: Using an existing type to create a plugin
 
 **Usage Example:**
 
 ```csharp
-var serviceProvider = new ServiceCollection()
-    .AddSingleton<IPluginMetadataProvider, CustomMetadataProvider>()
-    .BuildServiceProvider();
-
-
-var kernelBuilder = services.AddKernel();
 kernelBuilder.Plugins.AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin");
 ```
 
