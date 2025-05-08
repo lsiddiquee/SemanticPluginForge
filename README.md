@@ -22,6 +22,14 @@
 
 ## Usage
 
+### Adding the Library to Your Project
+  
+To add `SemanticPluginForge` to your project, use the following command:
+
+```bash
+dotnet add package SemanticPluginForge.Core
+```
+
 ### Implementing a Custom Metadata Provider
 
 Implement the `IPluginMetadataProvider` interface. The following code is a sample provider that overrides the description of a function from the `TimePlugin`.
@@ -104,6 +112,64 @@ When a parameter is set to `Suppress`, it must either be optional or have a defa
 - **Default Value Precedence**: If a default value is provided through the metadata provider, it takes precedence over the default value specified in the original plugin implementation.
 
 This ensures that suppressed parameters are handled gracefully without causing runtime errors.
+
+## Using any CLR types and objects as plugins
+  
+The library allows you to use any CLR type or object as a plugin without requiring `KernelFunction` attribute. This enables you to create plugins from existing objects or types, making it easier to integrate with existing codebases.
+
+**Sample Type and Metadata Provider:**
+
+```csharp
+public class ShortDate
+{
+  public string ToShortDateString()
+  {
+    return DateTime.Now.ToShortDateString();
+  }
+}
+
+public class CustomMetadataProvider : IPluginMetadataProvider
+{
+  public PluginMetadata? GetPluginMetadata(KernelPlugin plugin) =>
+    plugin.Name == "ShortDatePlugin" ? new PluginMetadata
+    {
+      Description = "This plugin returns date and time information."
+    } : null;
+
+  public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
+    plugin.Name == "ShortDatePlugin" && metadata.Name == "ToShortDateString" ? new FunctionMetadata(metadata.Name)
+    {
+      Description = "Returns the date in short format."
+    } : null;
+}
+```
+
+### CreateFromClrObjectWithMetadata: Using an existing object to create a plugin
+
+**Usage Example:**
+
+```csharp
+var serviceProvider = new ServiceCollection()
+    .AddSingleton<IPluginMetadataProvider, CustomMetadataProvider>()
+    .BuildServiceProvider();
+
+var targetObject = new ShortDate();
+var kernelBuilder = services.AddKernel();
+kernelBuilder.Plugins.AddFromClrObjectWithMetadata(targetObject, "ShortDatePlugin");```
+
+### CreateFromClrTypeWithMetadata: Using an existing type to create a plugin
+
+**Usage Example:**
+
+```csharp
+var serviceProvider = new ServiceCollection()
+    .AddSingleton<IPluginMetadataProvider, CustomMetadataProvider>()
+    .BuildServiceProvider();
+
+
+var kernelBuilder = services.AddKernel();
+kernelBuilder.Plugins.AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin");
+```
 
 ## Contributing
 

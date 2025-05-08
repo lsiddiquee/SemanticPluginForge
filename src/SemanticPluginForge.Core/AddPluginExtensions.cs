@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using SemanticPluginForge.Core;
 
@@ -26,7 +25,7 @@ public static class AddPluginExtensions
     /// </remarks>
     public static IKernelBuilderPlugins AddFromObjectWithMetadata(this IKernelBuilderPlugins plugins, object target, string? pluginName = null)
     {
-        plugins.Services.AddSingleton(sp => CreateFromObjectWithMetadata(target, sp, pluginName));
+        plugins.Services.AddSingleton(sp => KernelPluginForge.CreateFromObjectWithMetadata(target, sp, pluginName));
 
         return plugins;
     }
@@ -50,17 +49,51 @@ public static class AddPluginExtensions
     /// </remarks>
     public static KernelPlugin AddFromObjectWithMetadata(this ICollection<KernelPlugin> plugins, object target, IServiceProvider serviceProvider, string? pluginName = null)
     {
-        var kernelPlugin = CreateFromObjectWithMetadata(target, serviceProvider, pluginName);
+        var kernelPlugin = KernelPluginForge.CreateFromObjectWithMetadata(target, serviceProvider, pluginName);
         plugins.Add(kernelPlugin);
 
         return kernelPlugin;
     }
 
-    private static KernelPlugin CreateFromObjectWithMetadata(object target, IServiceProvider serviceProvider, string? pluginName = null)
+    /// <summary>
+    /// Creates a plugin that wraps the specified target object and updates any metadata
+    /// that it can find using IPluginMetadataProvider and adds it into the plugin collection.
+    /// </summary>
+    /// <param name="plugins">The plugin collection to which the new plugin should be added.</param>
+    /// <param name="target">The instance of the class to be wrapped.</param>
+    /// <param name="pluginName">Name of the plugin for function collection.</param>
+    /// <returns>A Microsoft.SemanticKernel.KernelPlugin containing Microsoft.SemanticKernel.KernelFunctions
+    /// for all relevant members of target.</returns>
+    /// <remarks>
+    /// Methods that have the metadata defined using IPluginMetadataProvider will be included in the plugin.
+    /// </remarks>
+    public static IKernelBuilderPlugins AddFromClrObjectWithMetadata(this IKernelBuilderPlugins plugins, object target, string pluginName )
     {
-        var kernelPlugin = KernelPluginFactory.CreateFromObject(target, pluginName, serviceProvider.GetService<ILoggerFactory>());
+        plugins.Services.AddSingleton(sp => KernelPluginForge.CreateFromClrObjectWithMetadata(target, sp, pluginName));
 
-        return serviceProvider.PatchKernelPluginWithMetadata(kernelPlugin);
+        return plugins;
+    }
+
+    /// <summary>
+    /// Creates a plugin that wraps the specified target object and updates any metadata
+    /// that it can find using IPluginMetadataProvider and adds it into the plugin collection.
+    /// </summary>
+    /// <param name="plugins">The plugin collection to which the new plugin should be added.</param>
+    /// <param name="target">The instance of the class to be wrapped.</param>
+    /// <param name="serviceProvider">Service provider from which to resolve dependencies,
+    /// such as Microsoft.Extensions.Logging.ILoggerFactory.</param>
+    /// <param name="pluginName">Name of the plugin for function collection.</param>
+    /// <returns>A Microsoft.SemanticKernel.KernelPlugin containing Microsoft.SemanticKernel.KernelFunctions
+    /// for all relevant members of target.</returns>
+    /// <remarks>
+    /// Methods that have the metadata defined using IPluginMetadataProvider will be included in the plugin.
+    /// </remarks>
+    public static KernelPlugin AddFromClrObjectWithMetadata(this ICollection<KernelPlugin> plugins, object target, IServiceProvider serviceProvider, string pluginName)
+    {
+        var kernelPlugin = KernelPluginForge.CreateFromClrObjectWithMetadata(target, serviceProvider, pluginName);
+        plugins.Add(kernelPlugin);
+
+        return kernelPlugin;
     }
 
     /// <summary>
@@ -79,7 +112,7 @@ public static class AddPluginExtensions
     /// </remarks>
     public static IKernelBuilderPlugins AddFromTypeWithMetadata<T>(this IKernelBuilderPlugins plugins, string? pluginName = null)
     {
-        plugins.Services.AddSingleton(sp => CreateFromTypeWithMetadata<T>(sp, pluginName));
+        plugins.Services.AddSingleton(sp => KernelPluginForge.CreateFromTypeWithMetadata<T>(sp, pluginName));
 
         return plugins;
     }
@@ -103,17 +136,51 @@ public static class AddPluginExtensions
     /// </remarks>
     public static KernelPlugin AddFromTypeWithMetadata<T>(this ICollection<KernelPlugin> plugins, IServiceProvider serviceProvider, string? pluginName = null)
     {
-        var kernelPlugin = CreateFromTypeWithMetadata<T>(serviceProvider, pluginName);
+        var kernelPlugin = KernelPluginForge.CreateFromTypeWithMetadata<T>(serviceProvider, pluginName);
         plugins.Add(kernelPlugin);
 
         return kernelPlugin;
     }
 
-    private static KernelPlugin CreateFromTypeWithMetadata<T>(IServiceProvider serviceProvider, string? pluginName = null)
+    /// <summary>
+    /// Creates a plugin that wraps a new instance of the specified type T and updates any metadata
+    /// that it can find using IPluginMetadataProvider and adds it into the plugin collection.
+    /// </summary>
+    /// <param name="plugins">The plugin collection to which the new plugin should be added.</param>
+    /// <param name="pluginName">Name of the plugin for function collection.</param>
+    /// <typeparam name="T">Specifies the type of the object to wrap.</typeparam>
+    /// <returns>A Microsoft.SemanticKernel.KernelPlugin containing Microsoft.SemanticKernel.KernelFunctions
+    /// for all relevant members of target.</returns>
+    /// <remarks>
+    /// Methods that have the metadata defined using IPluginMetadataProvider will be included in the plugin.
+    /// </remarks>
+    public static IKernelBuilderPlugins AddFromClrTypeWithMetadata<T>(this IKernelBuilderPlugins plugins, string pluginName)
     {
-        var kernelPlugin = KernelPluginFactory.CreateFromType<T>(pluginName, serviceProvider);
+        plugins.Services.AddSingleton(sp => KernelPluginForge.CreateFromClrTypeWithMetadata<T>(sp, pluginName));
 
-        return serviceProvider.PatchKernelPluginWithMetadata(kernelPlugin);
+        return plugins;
+    }
+
+    /// <summary>
+    /// Creates a plugin that wraps a new instance of the specified type T and updates any metadata
+    /// that it can find using IPluginMetadataProvider and adds it into the plugin collection.
+    /// </summary>
+    /// <param name="plugins">The plugin collection to which the new plugin should be added.</param>
+    /// <param name="serviceProvider">Service provider from which to resolve dependencies,
+    /// such as Microsoft.Extensions.Logging.ILoggerFactory.</param>
+    /// <param name="pluginName">Name of the plugin for function collection.</param>
+    /// <typeparam name="T">Specifies the type of the object to wrap.</typeparam>
+    /// <returns>A Microsoft.SemanticKernel.KernelPlugin containing Microsoft.SemanticKernel.KernelFunctions
+    /// for all relevant members of target.</returns>
+    /// <remarks>
+    /// Methods that have the metadata defined using IPluginMetadataProvider will be included in the plugin.
+    /// </remarks>
+    public static KernelPlugin AddFromClrTypeWithMetadata<T>(this ICollection<KernelPlugin> plugins, IServiceProvider serviceProvider, string pluginName)
+    {
+        var kernelPlugin = KernelPluginForge.CreateFromClrTypeWithMetadata<T>(serviceProvider, pluginName);
+        plugins.Add(kernelPlugin);
+
+        return kernelPlugin;
     }
 
     /// <summary>
@@ -132,7 +199,7 @@ public static class AddPluginExtensions
     /// </remarks>
     public static IKernelBuilderPlugins AddFromFunctionsWithMetadata(this IKernelBuilderPlugins plugins, string pluginName, IEnumerable<KernelFunction>? functions)
     {
-        plugins.Services.AddSingleton(sp => CreateFromFunctionsWithMetadata(sp, pluginName, functions));
+        plugins.Services.AddSingleton(sp => KernelPluginForge.CreateFromFunctionsWithMetadata(sp, pluginName, functions));
 
         return plugins;
     }
@@ -156,17 +223,10 @@ public static class AddPluginExtensions
     /// </remarks>
     public static KernelPlugin AddFromFunctionsWithMetadata(this ICollection<KernelPlugin> plugins, IServiceProvider serviceProvider, string pluginName, IEnumerable<KernelFunction>? functions)
     {
-        var kernelPlugin = CreateFromFunctionsWithMetadata(serviceProvider, pluginName, functions);
+        var kernelPlugin = KernelPluginForge.CreateFromFunctionsWithMetadata(serviceProvider, pluginName, functions);
         plugins.Add(kernelPlugin);
 
         return kernelPlugin;
-    }
-
-    private static KernelPlugin CreateFromFunctionsWithMetadata(IServiceProvider serviceProvider, string pluginName, IEnumerable<KernelFunction>? functions)
-    {
-        var kernelPlugin = KernelPluginFactory.CreateFromFunctions(pluginName, functions);
-
-        return serviceProvider.PatchKernelPluginWithMetadata(kernelPlugin);
     }
 
     /// <summary>
@@ -181,7 +241,6 @@ public static class AddPluginExtensions
     public static KernelPlugin PatchKernelPluginWithMetadata(this IServiceProvider serviceProvider, KernelPlugin plugin)
     {
         var metadataProvider = serviceProvider.GetRequiredService<IPluginMetadataProvider>();
-        var builder = new PluginBuilder(metadataProvider);
-        return builder.PatchKernelPluginWithMetadata(plugin);
+        return KernelPluginForge.PatchKernelPluginWithMetadata(plugin, metadataProvider);
     }
 }
