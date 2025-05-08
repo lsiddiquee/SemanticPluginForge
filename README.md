@@ -160,6 +160,15 @@ kernelBuilder.Plugins.AddFromClrObjectWithMetadata(new ShortDate(), "ShortDatePl
 kernelBuilder.Plugins.AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin");
 ```
 
+## Samples
+
+Explore the [`samples`](./samples/) directory for practical examples of using `SemanticPluginForge` in different scenarios. Each subdirectory contains a specific use case with its own `README.md` and source code.
+
+- **DefaultValue**: Demonstrates how to suppress a parameter and use default values in plugin metadata, suppressing also ensures that there is no chance of the value being ever resolved from the context. This also showcases how the description of the parameter is overridden to retrieve the location of the user from the context.
+- **UseClrType**: Shows how to use CLR types and objects as plugins.
+
+Navigate to the [`samples`](./samples/) folder to get started with these examples.
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
