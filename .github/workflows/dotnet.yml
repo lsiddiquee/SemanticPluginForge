@@ -78,10 +78,14 @@ jobs:
       with:
         dotnet-version: 8.0.x
 
-    - name: Restore dependencies
-      working-directory: ./samples/UseClrType
-      run: dotnet restore
+    - name: Restore dependencies for all samples
+      run: |
+        for sample in ./samples/*/; do
+          dotnet restore "$sample"
+        done
 
-    - name: Build
-      working-directory: ./samples/UseClrType
-      run: dotnet build --configuration Release --no-restore
+    - name: Build all samples
+      run: |
+        for sample in ./samples/*/; do
+          dotnet build --configuration Release --no-restore "$sample"
+        done
