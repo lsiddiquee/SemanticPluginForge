@@ -62,3 +62,30 @@ jobs:
     - name: Check we can pack
       working-directory: ./src/
       run: dotnet pack --configuration Release --no-build --output ./nupkg
+
+  build_samples:
+
+    permissions:
+      checks: write
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies for all samples
+      run: |
+        for sample in ./samples/*/; do
+          dotnet restore "$sample"
+        done
+
+    - name: Build all samples
+      run: |
+        for sample in ./samples/*/; do
+          dotnet build --configuration Release --no-restore "$sample"
+        done

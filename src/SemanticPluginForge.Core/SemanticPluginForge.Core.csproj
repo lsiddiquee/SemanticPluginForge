@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RootNamespace>SemanticPluginForge</RootNamespace>
 
     <!-- NuGet package properties -->
     <Authors>Likhan Siddiquee</Authors>
@@ -23,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="README.md">
+    <None Include="..\..\README.md">
       <Pack>true</Pack>
       <PackagePath>\</PackagePath>
     </None>

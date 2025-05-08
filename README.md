@@ -22,6 +22,14 @@
 
 ## Usage
 
+### Adding the Library to Your Project
+  
+To add `SemanticPluginForge` to your project, use the following command:
+
+```bash
+dotnet add package SemanticPluginForge.Core
+```
+
 ### Implementing a Custom Metadata Provider
 
 Implement the `IPluginMetadataProvider` interface. The following code is a sample provider that overrides the description of a function from the `TimePlugin`.
@@ -104,6 +112,62 @@ When a parameter is set to `Suppress`, it must either be optional or have a defa
 - **Default Value Precedence**: If a default value is provided through the metadata provider, it takes precedence over the default value specified in the original plugin implementation.
 
 This ensures that suppressed parameters are handled gracefully without causing runtime errors.
+
+## Using any CLR types and objects as plugins
+  
+The library allows you to use any CLR type or object as a plugin without requiring `KernelFunction` attribute. This enables you to create plugins from existing objects or types, making it easier to integrate with existing codebases.
+
+**Sample Type and Metadata Provider:**
+
+```csharp
+public class ShortDate
+{
+  public string ToShortDateString()
+  {
+    return DateTime.Now.ToShortDateString();
+  }
+}
+
+public class CustomMetadataProvider : IPluginMetadataProvider
+{
+  public PluginMetadata? GetPluginMetadata(KernelPlugin plugin) =>
+    plugin.Name == "ShortDatePlugin" ? new PluginMetadata
+    {
+      Description = "This plugin returns date and time information."
+    } : null;
+
+  public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
+    plugin.Name == "ShortDatePlugin" && metadata.Name == "ToShortDateString" ? new FunctionMetadata(metadata.Name)
+    {
+      Description = "Returns the date in short format."
+    } : null;
+}
+```
+
+### CreateFromClrObjectWithMetadata: Using an existing object to create a plugin
+
+**Usage Example:**
+
+```csharp
+kernelBuilder.Plugins.AddFromClrObjectWithMetadata(new ShortDate(), "ShortDatePlugin");
+```
+
+### CreateFromClrTypeWithMetadata: Using an existing type to create a plugin
+
+**Usage Example:**
+
+```csharp
+kernelBuilder.Plugins.AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin");
+```
+
+## Samples
+
+Explore the [`samples`](./samples/) directory for practical examples of using `SemanticPluginForge` in different scenarios. Each subdirectory contains a specific use case with its own `README.md` and source code.
+
+- **DefaultValue**: Demonstrates how to suppress a parameter and use default values in plugin metadata, suppressing also ensures that there is no chance of the value being ever resolved from the context. This also showcases how the description of the parameter is overridden to retrieve the location of the user from the context.
+- **UseClrType**: Shows how to use CLR types and objects as plugins.
+
+Navigate to the [`samples`](./samples/) folder to get started with these examples.
 
 ## Contributing
 
