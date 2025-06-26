@@ -174,6 +174,21 @@ Explore the [`samples`](https://github.com/lsiddiquee/SemanticPluginForge/sample
 
 Navigate to the [`samples`](https://github.com/lsiddiquee/SemanticPluginForge/samples/) folder to get started with these examples.
 
+## Documentation
+
+For comprehensive documentation, API reference, and advanced usage examples, visit:
+
+**[https://lsiddiquee.github.io/SemanticPluginForge/](https://lsiddiquee.github.io/SemanticPluginForge/)**
+
+## Support
+
+Need help or have questions? Check out our [Support Guide](https://github.com/lsiddiquee/SemanticPluginForge/support.md) for information on:
+
+- Getting help and reporting issues
+- Community discussions
+- Contributing guidelines
+- Additional resources
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request.
