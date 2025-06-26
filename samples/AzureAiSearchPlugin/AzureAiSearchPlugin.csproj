@@ -1,11 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UserSecretsId>5a38bac6-f690-47ae-be10-38e12de4992f</UserSecretsId>
+    <UserSecretsId>azure-ai-search-plugin-sample</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
