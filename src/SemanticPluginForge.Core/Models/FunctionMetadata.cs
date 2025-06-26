@@ -13,8 +13,17 @@ public class FunctionMetadata(string name)
 {
     /// <summary>
     /// Gets the name of the function.
+    /// This name should match the name of the function in the plugin.
+    /// It is used to identify the function in the plugin and to call it.
     /// </summary>
     public string Name { get; init; } = name;
+
+    /// <summary>
+    /// Gets the name of the function to override in the plugin.
+    /// This is used to specify a different name for the function in the plugin than the one
+    /// defined in the actual plugin.
+    /// </summary>
+    public string? OverrideFunctionName { get; init; }
 
     /// <summary>
     /// Gets if the function should be suppressed from the plugin.

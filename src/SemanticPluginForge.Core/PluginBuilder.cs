@@ -35,7 +35,7 @@ public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBu
 
                 var options = new KernelFunctionFromMethodOptions
                 {
-                    FunctionName = functionMeta.Name,
+                    FunctionName = functionMeta.OverrideFunctionName ?? functionMeta.Name,
                     Description = functionMeta.Description ?? function.Metadata.Description,
                     Parameters = parameters,
                     ReturnParameter = functionMeta.ReturnParameter == null ? function.Metadata.ReturnParameter : new KernelReturnParameterMetadata(function.Metadata.ReturnParameter)
