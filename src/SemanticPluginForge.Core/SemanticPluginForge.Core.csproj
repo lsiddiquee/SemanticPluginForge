@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <VersionPrefix>2.0.1</VersionPrefix>
     <RootNamespace>SemanticPluginForge</RootNamespace>
 
     <!-- NuGet package properties -->
@@ -13,10 +14,12 @@
     <PackageTags>semantic kernel plugin metadata</PackageTags>
     <RepositoryUrl>https://github.com/lsiddiquee/SemanticPluginForge</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/lsiddiquee/SemanticPluginForge</PackageProjectUrl>
+    <PackageProjectUrl>https://lsiddiquee.github.io/SemanticPluginForge/</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>2.0.0</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup>
