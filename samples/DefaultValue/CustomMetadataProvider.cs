@@ -14,12 +14,14 @@ public class CustomMetadataProvider : IPluginMetadataProvider
                     {
                         Description = "The name of the city should be retrieved from the user context, if not in context, please ask the user.",
                         IsRequired = true,
+                        Suppress = false,
+                        DefaultValue = "London",
                     },
                     new ParameterMetadata("unit")
                     {
-                        Description = "This description does not matter as this will always be suppressed and the default will be used.",
-                        IsRequired = false,
-                        Suppress = true,
+                        Description = "The unit should be retrieved from the user context.",
+                        IsRequired = true,
+                        Suppress = false,
                         DefaultValue = "fahrenheit",
                     }
                 ],

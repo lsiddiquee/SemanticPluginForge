@@ -10,6 +10,7 @@ public class WeatherPlugin
         [Description("The temperature unit, default is celsius")] string unit = "celsius"
     )
     {
+        Console.WriteLine($"Getting temperature for {name} in {unit}.");
         return $"{name} temperature is 20 degrees {unit}";
     }
 }

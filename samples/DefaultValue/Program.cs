@@ -10,20 +10,20 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Configuration.AddUserSecrets(Assembly.GetExecutingAssembly());
 var kernelBuilder = builder.Services.AddKernel();
 kernelBuilder.AddAzureOpenAIChatCompletion(
-    builder.Configuration["AzureOpenAI:ChatDeploymentName"],
-    builder.Configuration["AzureOpenAI:Endpoint"],
-    builder.Configuration["AzureOpenAI:ApiKey"]
+    builder.Configuration["AzureOpenAI:ChatDeploymentName"]!,
+    builder.Configuration["AzureOpenAI:Endpoint"]!,
+    builder.Configuration["AzureOpenAI:ApiKey"]!
 );
-
 builder.Services.AddSingleton<IPluginMetadataProvider, CustomMetadataProvider>();
 
 kernelBuilder.Plugins.AddFromTypeWithMetadata<WeatherPlugin>("WeatherPlugin");
 
 var host = builder.Build();
 var kernel = host.Services.GetRequiredService<Kernel>();
+kernel.AutoFunctionInvocationFilters.Add(new FunctionLogger());
 
 var contexts = new List<string> { "UserContext: { \"name\": \"John Doe\", \"location\": \"Utrecht\", \"preferredUnit\": \"celsius\" }",
-"UserContext: { \"name\": \"Jane Doe\", \"location\": \"Rotterdam\", \"preferredUnit\": \"celsius\" }",
+"UserContext: { \"name\": \"Jane Doe\", \"location\": \"Rotterdam\", \"preferredUnit\": \"fahrenheit\" }",
 "UserContext: { \"name\": \"Jan Jansen\", \"preferredUnit\": \"celsius\" }",
 };
 
