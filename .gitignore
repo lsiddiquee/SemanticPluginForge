@@ -482,3 +482,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Generated documentation files
+_site/
+api/

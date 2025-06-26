@@ -162,17 +162,17 @@ kernelBuilder.Plugins.AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin");
 
 ## Samples
 
-Explore the [`samples`](./samples/) directory for practical examples of using `SemanticPluginForge` in different scenarios. Each sample includes comprehensive documentation, setup instructions, and focuses on specific framework concepts.
+Explore the [`samples`](https://github.com/lsiddiquee/SemanticPluginForge/samples/) directory for practical examples of using `SemanticPluginForge` in different scenarios. Each sample includes comprehensive documentation, setup instructions, and focuses on specific framework concepts.
 
 ### Available Samples
 
-- **[DefaultValue](./samples/DefaultValue/)**: Demonstrates advanced parameter handling including suppression, default values, and context-aware metadata. Shows how to override parameter descriptions and ensure parameters are never resolved from context when suppressed.
+- **[DefaultValue](https://github.com/lsiddiquee/SemanticPluginForge/samples/DefaultValue/)**: Demonstrates advanced parameter handling including suppression, default values, and context-aware metadata. Shows how to override parameter descriptions and ensure parameters are never resolved from context when suppressed.
 
-- **[UseClrType](./samples/UseClrType/)**: Shows how to use existing .NET classes as Semantic Kernel plugins without requiring `KernelFunction` attributes. Demonstrates both type-based and object-based registration approaches.
+- **[UseClrType](https://github.com/lsiddiquee/SemanticPluginForge/samples/UseClrType/)**: Shows how to use existing .NET classes as Semantic Kernel plugins without requiring `KernelFunction` attributes. Demonstrates both type-based and object-based registration approaches.
 
-- **[AzureAiSearchPlugin](./samples/AzureAiSearchPlugin/)**: Comprehensive example showing how to create multiple instances of the same plugin class with different metadata configurations for various data sources. Uses mocked data for learning without external dependencies.
+- **[AzureAiSearchPlugin](https://github.com/lsiddiquee/SemanticPluginForge/samples/AzureAiSearchPlugin/)**: Comprehensive example showing how to create multiple instances of the same plugin class with different metadata configurations for various data sources. Uses mocked data for learning without external dependencies.
 
-Navigate to the [`samples`](./samples/) folder to get started with these examples.
+Navigate to the [`samples`](https://github.com/lsiddiquee/SemanticPluginForge/samples/) folder to get started with these examples.
 
 ## Contributing
 
