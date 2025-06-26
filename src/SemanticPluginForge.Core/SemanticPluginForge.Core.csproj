@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <VersionPrefix>2.0.1</VersionPrefix>
     <RootNamespace>SemanticPluginForge</RootNamespace>
 
     <!-- NuGet package properties -->
