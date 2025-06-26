@@ -297,6 +297,42 @@ public class PluginBuilderTests
         result.FunctionCount.Should().Be(0);
     }
 
+    [Fact]
+    public async Task PatchKernelPluginWithMetadata_ShouldReturnAlteredPlugin_WhenFunctionNameIsOverriddenAsync()
+    {
+        // Arrange
+        var metadataProviderMock = new Mock<IPluginMetadataProvider>();
+        metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.Is<KernelFunctionMetadata>(func => func.Name == nameof(SamplePlugin.GetCurrentUsername))))
+            .Returns<KernelPlugin, KernelFunctionMetadata>((p, m) => new FunctionMetadata(m.Name) 
+            {
+                OverrideFunctionName = "GetUser",
+                Description = "Gets the current logged in user"
+            });
+
+        var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
+        var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
+
+        // Act
+        var result = pluginBuilder.PatchKernelPluginWithMetadata(kernelPlugin);
+
+        // Assert
+        result.Should().NotBeSameAs(kernelPlugin);
+        
+        // Verify the function was renamed
+        result.Should().Contain(f => f.Name == "GetUser");
+        result.Should().NotContain(f => f.Name == nameof(SamplePlugin.GetCurrentUsername));
+        
+        // Verify the overridden function has the correct properties
+        var overriddenFunction = result["GetUser"];
+        overriddenFunction.Should().NotBeNull();
+        overriddenFunction.Metadata.Name.Should().Be("GetUser");
+        overriddenFunction.Metadata.Description.Should().Be("Gets the current logged in user");
+        
+        // Verify we can still invoke the function with the new name
+        var functionResult = await overriddenFunction.InvokeAsync(new Kernel());
+        functionResult.GetValue<string>().Should().Be("my_user");
+    }
+
     private List<FunctionMetadata> GetExpectedFunctionsMetadata(
         string usernameFunctionDescription = "Returns the current username.",
         string usernameReturnDescription = "",

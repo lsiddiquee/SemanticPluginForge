@@ -162,10 +162,15 @@ kernelBuilder.Plugins.AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin");
 
 ## Samples
 
-Explore the [`samples`](./samples/) directory for practical examples of using `SemanticPluginForge` in different scenarios. Each subdirectory contains a specific use case with its own `README.md` and source code.
+Explore the [`samples`](./samples/) directory for practical examples of using `SemanticPluginForge` in different scenarios. Each sample includes comprehensive documentation, setup instructions, and focuses on specific framework concepts.
 
-- **DefaultValue**: Demonstrates how to suppress a parameter and use default values in plugin metadata, suppressing also ensures that there is no chance of the value being ever resolved from the context. This also showcases how the description of the parameter is overridden to retrieve the location of the user from the context.
-- **UseClrType**: Shows how to use CLR types and objects as plugins.
+### Available Samples
+
+- **[DefaultValue](./samples/DefaultValue/)**: Demonstrates advanced parameter handling including suppression, default values, and context-aware metadata. Shows how to override parameter descriptions and ensure parameters are never resolved from context when suppressed.
+
+- **[UseClrType](./samples/UseClrType/)**: Shows how to use existing .NET classes as Semantic Kernel plugins without requiring `KernelFunction` attributes. Demonstrates both type-based and object-based registration approaches.
+
+- **[AzureAiSearchPlugin](./samples/AzureAiSearchPlugin/)**: Comprehensive example showing how to create multiple instances of the same plugin class with different metadata configurations for various data sources. Uses mocked data for learning without external dependencies.
 
 Navigate to the [`samples`](./samples/) folder to get started with these examples.
 
