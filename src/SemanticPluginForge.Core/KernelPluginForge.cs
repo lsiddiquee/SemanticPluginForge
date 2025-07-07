@@ -52,8 +52,6 @@ public static class KernelPluginForge
         var loggerFactory = serviceProvider.GetService<ILoggerFactory>();
         var logger = loggerFactory?.CreateLogger(target.GetType());
 
-        MethodInfo[] methods = target.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-
         var metadataProvider = serviceProvider.GetRequiredService<IPluginMetadataProvider>();
 
         var temporaryPlugin = KernelPluginFactory.CreateFromFunctions(pluginName);
@@ -63,11 +61,15 @@ public static class KernelPluginForge
             throw new ArgumentException($"The plugin with name '{pluginName}' doesn't have any metadata defined.");
         }
 
+        var methods = target.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).ToList();
+
+        // Filter out methods with TAP.
+        FilterMethodsWithAsyncOverloads(methods, logger);
+
         // Include only functions that have the metadata defined.
         var functions = new List<KernelFunction>();
         foreach (MethodInfo method in methods)
         {
-            // TODO: Deal with overloads
             var kernelFunction = KernelFunctionFactory.CreateFromMethod(method, target, loggerFactory: loggerFactory);
             var functionMetadata = metadataProvider.GetFunctionMetadata(temporaryPlugin, kernelFunction.Metadata);
             if (functionMetadata is not null)
@@ -82,7 +84,7 @@ public static class KernelPluginForge
 
         if (logger is not null && logger.IsEnabled(LogLevel.Trace))
         {
-            logger.LogTrace("Created plugin {PluginName} with {IncludedFunctions} [KernelFunction] methods out of {TotalMethods} methods found.", pluginName, functions.Count, methods.Length);
+            logger.LogTrace("Created plugin {PluginName} with {IncludedFunctions} [KernelFunction] methods out of {TotalMethods} methods found.", pluginName, functions.Count, methods.Count);
         }
 
         var kernelPlugin = KernelPluginFactory.CreateFromFunctions(pluginName, pluginMetadata?.Description, functions);
@@ -159,11 +161,85 @@ public static class KernelPluginForge
     /// </summary>
     /// <param name="plugin">A Microsoft.SemanticKernel.KernelPlugin containing the original functions wrapped.</param>
     /// <param name="metadataProvider">Implementation of IPluginMetadataProvider which can be used to update the plugin.</param>
-     /// <returns>A Microsoft.SemanticKernel.KernelPlugin containing Microsoft.SemanticKernel.KernelFunctions
+    /// <returns>A Microsoft.SemanticKernel.KernelPlugin containing Microsoft.SemanticKernel.KernelFunctions
     /// for all relevant members of target.</returns>
-   public static KernelPlugin PatchKernelPluginWithMetadata(KernelPlugin plugin, IPluginMetadataProvider metadataProvider)
+    public static KernelPlugin PatchKernelPluginWithMetadata(KernelPlugin plugin, IPluginMetadataProvider metadataProvider)
     {
         var builder = new PluginBuilder(metadataProvider);
         return builder.PatchKernelPluginWithMetadata(plugin);
+    }
+
+    /// <summary>
+    /// Filters out methods that have overloads with only difference being a CancellationToken parameter and/or Async suffix.
+    /// </summary>
+    /// <param name="methods">The list of methods to filter.</param>
+    /// <param name="logger">The logger.</param>
+    private static void FilterMethodsWithAsyncOverloads(List<MethodInfo> methods, ILogger? logger)
+    {
+        // Create a normalized list of methods where we remove the CancellationToken parameter and Async suffix.
+        var methodMetaList = methods.Select(m => new MethodMeta(m)).ToArray();
+        
+        for (int i = 0; i < methodMetaList.Length; i++)
+        {
+            for (int j = i + 1; j < methodMetaList.Length; j++)
+            {
+                if (methodMetaList[i].Name == methodMetaList[j].Name &&
+                    methodMetaList[i].Parameters.Length == methodMetaList[j].Parameters.Length)
+                {
+                    int k = 0;
+                    for (; k < methodMetaList[i].Parameters.Length; k++)
+                    {
+                        if (methodMetaList[i].Parameters[k].Name != methodMetaList[j].Parameters[k].Name ||
+                            methodMetaList[i].Parameters[k].ParameterType != methodMetaList[j].Parameters[k].ParameterType)
+                        {
+                            // If the parameters are not the same, we can skip this pair.
+                            break;
+                        }
+                    }
+
+                    if (k == methodMetaList[i].Parameters.Length)
+                    {
+                        // If we reached here, it means the methods are identical except for the async suffix and/or cancellation token parameter.
+                        // Order of choice, cancellation token parameter then Async suffix.
+                        int removeIndex = j;
+                        if (methodMetaList[i].HasCancellationTokenParameter != methodMetaList[j].HasCancellationTokenParameter)
+                        {
+                            removeIndex = methodMetaList[i].HasCancellationTokenParameter ? j : i;
+                        }
+                        else if (methodMetaList[i].HasAsyncSuffix != methodMetaList[j].HasAsyncSuffix)
+                        {
+                            removeIndex = methodMetaList[i].HasAsyncSuffix ? j : i;
+                        }
+
+                        logger?.LogInformation("Suppressing method {MethodName} with parameters: {Parameters}",
+                            methodMetaList[removeIndex].MethodInfo.Name,
+                            string.Join(", ", methodMetaList[removeIndex].MethodInfo.GetParameters().Select(p => p.Name)));
+                        methods.Remove(methodMetaList[removeIndex].MethodInfo);
+                    }
+                }
+            }
+        }
+    }
+
+    internal class MethodMeta
+    {
+        internal string Name { get; private set; }
+
+        internal ParameterInfo[] Parameters { get; private set; }
+
+        internal bool HasAsyncSuffix { get; private set; }
+
+        internal bool HasCancellationTokenParameter { get; private set; }
+
+        internal MethodInfo MethodInfo { get; private set; }
+
+        internal MethodMeta(MethodInfo method)
+        {
+            HasAsyncSuffix = method.Name.EndsWith("Async");
+            Name = HasAsyncSuffix ? method.Name.Substring(0, method.Name.Length - "Async".Length) : method.Name;
+            Parameters = [.. method.GetParameters().Where(p => p.ParameterType != typeof(CancellationToken))];
+            HasCancellationTokenParameter = method.GetParameters().Any(p => p.ParameterType == typeof(CancellationToken));
+            MethodInfo = method;
+        }
     }
 }

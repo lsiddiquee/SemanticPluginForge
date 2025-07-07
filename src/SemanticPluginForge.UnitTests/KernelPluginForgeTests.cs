@@ -5,7 +5,7 @@ using SemanticPluginForge.Core;
 
 namespace SemanticPluginForge.UnitTests
 {
-    public class KernelPluginForgeTests
+    public partial class KernelPluginForgeTests
     {
         [Fact]
         public void CreateFromClrObjectWithMetadata_ShouldReturnValidPlugin()
@@ -88,27 +88,31 @@ namespace SemanticPluginForge.UnitTests
             act.Should().Throw<ArgumentException>();
         }
 
-        private class StubPluginWithoutAttribute
+        [Fact]
+        public void CreateFromClrObjectWithMetadata_FiltersDuplicateMethods()
         {
-            public string ToShortDateString()
-            {
-                return DateTime.Now.ToShortDateString();
-            }
-        }
+            // Arrange
+            var serviceProvider = new ServiceCollection()
+                .AddSingleton<IPluginMetadataProvider, AsyncMethodsMetadataProvider>()
+                .BuildServiceProvider();
 
-        private class StubPluginMetadataProvider : IPluginMetadataProvider
-        {
-            public PluginMetadata? GetPluginMetadata(KernelPlugin plugin) =>
-                plugin.Name == "DateTimePlugin" ? new PluginMetadata
-                {
-                    Description = "This plugin returns date and time information."
-                } : null;
+            var target = new AsyncMethodsPlugin();
+            var pluginName = "AsyncMethodsPlugin";
 
-            public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
-                plugin.Name == "DateTimePlugin" && metadata.Name == "ToShortDateString" ? new FunctionMetadata(metadata.Name)
+            // Act
+            var plugin = KernelPluginForge.CreateFromClrObjectWithMetadata(target, serviceProvider, pluginName);
+
+            // Assert
+            plugin.Should().NotBeNull();
+            plugin.Name.Should().Be(pluginName);
+            plugin.FunctionsMetaShouldBe([
+                new FunctionMetadata("GetData")
                 {
-                    Description = "Returns the date in short format."
-                } : null;
+                    Description = "Function GetData for testing async filtering.",
+                    Parameters = [],
+                    ReturnParameter = new ReturnParameterMetadata { Description = string.Empty }
+                }
+            ]);
         }
     }
 }
