@@ -17,7 +17,7 @@ This section covers the advanced capabilities of SemanticPluginForge:
 | Function Suppression | Hide entire functions from plugin consumers | Deprecating functions, conditional availability |
 | Parameter Suppression | Hide specific parameters while providing defaults | Simplifying interfaces, context injection |
 | CLR Type Support | Use any .NET class as a plugin | Legacy code integration, external libraries |
-| Function Name Override | Change function names without code modification | Better naming conventions, API versioning |
+| Function Name Override | Change function names without code modification | Better AI naming conventions, method overload disambiguation, API versioning |
 | Default Value Override | Set parameter defaults through metadata | Configuration-driven defaults, environment-specific values |
 
 ## Quick Examples
@@ -76,12 +76,39 @@ kernelBuilder.Plugins.AddFromClrTypeWithMetadata<DateUtility>("DateUtils");
 ```csharp
 public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata)
 {
-    if (plugin.Name == "MyPlugin" && metadata.Name == "GetCurrentUsername")
+    if (plugin.Name == "RandomPlugin")
     {
-        return new FunctionMetadata(metadata.Name) 
-        { 
-            OverrideFunctionName = "GetUser" 
-        };
+        // Handle function overloads by examining parameter signature
+        if (metadata.Name == "Next")
+        {
+            // Different overrides based on parameter count
+            var paramCount = metadata.Parameters.Count;
+            
+            if (paramCount == 0)
+            {
+                return new FunctionMetadata(metadata.Name)
+                {
+                    OverrideFunctionName = "GetRandomNumber",
+                    Description = "Generates a random non-negative integer"
+                };
+            }
+            else if (paramCount == 1 && metadata.Parameters[0].Name == "maxValue")
+            {
+                return new FunctionMetadata(metadata.Name)
+                {
+                    OverrideFunctionName = "GetRandomNumberWithMaxValue",
+                    Description = "Generates a random integer between 0 and maxValue (exclusive)"
+                };
+            }
+            else if (paramCount == 2)
+            {
+                return new FunctionMetadata(metadata.Name)
+                {
+                    OverrideFunctionName = "GetRandomNumberInRange",
+                    Description = "Generates a random integer between minValue and maxValue"
+                };
+            }
+        }
     }
     return null;
 }
