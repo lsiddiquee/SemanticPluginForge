@@ -1,42 +1,72 @@
 # Use CLR Type Plugin Sample
 
-This sample demonstrates how to create Semantic Kernel plugins from **custom CLR (Common Language Runtime) types** using the SemanticPluginForge framework. It shows how to register both type-based and object-based plugins with enhanced metadata providers.
+This sample demonstrates how to create Semantic Kernel plugins from **custom CLR (Common Language Runtime) types** using the SemanticPluginForge framework. It shows how to register both type-based and object-based plugins with enhanced metadata providers, and how to use `FunctionMetadata.OverrideFunctionName` to handle overloaded methods.
 
-The sample features a simple **ShortDate** class that provides date formatting functionality, demonstrating how any .NET class can be transformed into a Semantic Kernel plugin with custom metadata.
+The sample features:
 
-> **Note**: This sample uses a simple date utility class to demonstrate CLR type plugin concepts. The focus is on showing how to register custom .NET types as plugins and enhance them with metadata providers.
+- A **DateTimeWrapper** class that provides date and time functionality
+- The standard .NET **Random** class for random number generation with overloaded methods
+- Direct integration with the **Azure Storage Queue Client**
+
+Together, these demonstrate how any .NET class can be transformed into a Semantic Kernel plugin with custom metadata.
+
+The sample also showcases:
+
+- How to use `FunctionMetadata.OverrideFunctionName` to handle overloaded methods like `Random.Next()`
+- How to enhance CLR types with detailed metadata for improved LLM understanding
+- Techniques for integrating Azure SDK clients directly as AI plugins
+
+> **Note**: This sample demonstrates CLR type plugin concepts with both custom and standard .NET classes, as well as Azure service clients. The focus is on showing how to register custom .NET types as plugins and enhance them with metadata providers.
 
 ## Key Features
 
 - **CLR Type Registration**: Demonstrates registering .NET types directly as Semantic Kernel plugins
 - **Object Instance Registration**: Shows alternative registration using object instances
 - **Custom Metadata Enhancement**: Illustrates how metadata providers can enhance basic CLR type functionality
-- **Simple Plugin Design**: Uses a focused, single-purpose class to demonstrate core concepts
+- **Multiple Plugin Types**: Demonstrates custom classes, standard .NET classes, and Azure SDK clients as plugins
+- **Direct SDK Integration**: Shows how to expose Azure SDK functionality directly to the LLM
+- **Function Name Overrides**: Uses custom function names for methods with same name but different parameters
 - **Type-Safe Integration**: Leverages .NET's type system for plugin registration
 
 ## Architecture
 
-### ShortDate Class
+### DateTimeWrapper Class
 
-- **Single Responsibility**: Provides date formatting functionality through `ToShortDateString()` method
+- **Multiple Date/Time Methods**: Provides date and time functionality through various methods
 - **Standard .NET Class**: Regular C# class without special plugin attributes
-- **Simple Interface**: Single public method that returns formatted date string
+- **Simple Interface**: Methods return formatted date and time strings
 - **No Dependencies**: Standalone class that demonstrates basic CLR type plugin concepts
+
+### Random Class (Standard .NET)
+
+- **Built-in .NET Class**: Demonstrates using framework classes as plugins
+- **Method Overloads**: Shows handling of multiple methods with the same name
+- **Function Name Overrides**: Uses custom names to disambiguate overloaded methods
+
+### Azure Storage Queue Client
+
+- **Direct SDK Integration**: Uses the Azure SDK QueueClient without a wrapper
+- **Real-World Application**: Demonstrates practical cloud service integration
+- **Authentication Support**: Uses DefaultAzureCredential for secure authentication
 
 ### Custom Metadata Provider
 
-The `CustomMetadataProvider` enhances the basic CLR type by:
+The `CustomMetadataProvider` enhances the CLR types by:
 
-- **Plugin Description**: Provides meaningful description for the date/time functionality
-- **Function Enhancement**: Adds descriptive metadata for the date formatting function
-- **Semantic Context**: Helps the LLM understand the plugin's purpose and capabilities
+- **Plugin Descriptions**: Provides meaningful descriptions for each plugin type
+- **Function Enhancement**: Adds descriptive metadata for each function
+- **Parameter Documentation**: Documents parameters for complex methods
+- **Function Name Overrides**: Provides friendly names for overloaded methods
+- **Default Values**: Sets default parameter values where appropriate
+- **Semantic Context**: Helps the LLM understand each plugin's purpose and capabilities
 
 ### Registration Options
 
-The sample demonstrates two registration approaches:
+The sample demonstrates multiple registration approaches:
 
-1. **Type-Based**: `AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin")`
-2. **Object-Based**: `AddFromClrObjectWithMetadata(targetObject, "ShortDatePlugin")` (commented example)
+1. **Type-Based for Custom Class**: `AddFromClrTypeWithMetadata<DateTimeWrapper>("DateTimeWrapper")`
+2. **Type-Based for Standard .NET Class**: `AddFromClrTypeWithMetadata<Random>("RandomPlugin")`
+3. **Object-Based for Azure SDK Client**: `AddFromClrObjectWithMetadata(qc, "Queue")`
 
 ## Setup Instructions
 
@@ -47,7 +77,7 @@ The sample demonstrates two registration approaches:
 
 ### Configuration
 
-Navigate to the project folder and set up user secrets for Azure OpenAI:
+Navigate to the project folder and set up user secrets for Azure OpenAI and Azure Storage Queue:
 
 ```console
 cd samples\UseClrType
@@ -55,7 +85,10 @@ dotnet user-secrets init
 dotnet user-secrets set "AzureOpenAI:ChatDeploymentName" "YOUR_DEPLOYMENT_NAME"
 dotnet user-secrets set "AzureOpenAI:Endpoint" "https://YOUR_ENDPOINT.openai.azure.com/"
 dotnet user-secrets set "AzureOpenAI:ApiKey" "YOUR_API_KEY"
+dotnet user-secrets set "AzureQueueUri" "https://<storage_account>.queue.core.windows.net/<queue_name>"
 ```
+
+The sample uses Azure Identity's DefaultAzureCredential for authentication to Azure Storage. Make sure you are logged in with the Azure CLI or have appropriate credentials configured.
 
 ### Run the Sample
 
@@ -77,33 +110,72 @@ When registering a CLR type as a plugin:
 ### Plugin Registration Process
 
 ```csharp
-// Type-based registration (recommended)
-kernelBuilder.Plugins.AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin");
+// Type-based registration for custom classes
+kernelBuilder.Plugins.AddFromClrTypeWithMetadata<DateTimeWrapper>("DateTimeWrapper");
 
-// Alternative object-based registration
-// var targetObject = new ShortDate();
-// kernelBuilder.Plugins.AddFromClrObjectWithMetadata(targetObject, "ShortDatePlugin");
+// Type-based registration for standard .NET classes
+kernelBuilder.Plugins.AddFromClrTypeWithMetadata<Random>("RandomPlugin");
+
+// Object-based registration for Azure SDK clients
+var qc = new QueueClient(new Uri(builder.Configuration["AzureQueueUri"]!), new DefaultAzureCredential());
+kernelBuilder.Plugins.AddFromClrObjectWithMetadata(qc, "Queue");
 ```
 
 ### Metadata Enhancement
 
-The custom metadata provider adds semantic meaning:
+The custom metadata provider adds semantic meaning to each plugin:
 
 ```csharp
-plugin.Name == "ShortDatePlugin" && metadata.Name == "ToShortDateString" ? 
-    new FunctionMetadata(metadata.Name)
+public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata)
+{
+    return plugin.Name switch
     {
-        Description = "Returns the date in short format."
-    } : null
+        "DateTimeWrapper" => metadata.Name switch
+        {
+            "ToShortDateString" => new FunctionMetadata(metadata.Name)
+            {
+                Description = "Returns the current date in short format (MM/dd/yyyy)."
+            },
+            // Other DateTimeWrapper methods...
+        },
+        "RandomPlugin" => metadata.Name switch
+        {
+            "Next" when metadata.Parameters.Count == 1 => new FunctionMetadata(metadata.Name)
+            {
+                OverrideFunctionName = "NextWithUpperBound",
+                Description = "Returns a random integer within a specified range.",
+                Parameters = [
+                    new ParameterMetadata("maxValue") 
+                    { 
+                        Description = "The exclusive upper bound of the random number returned." 
+                    }
+                ]
+            },
+            // Other Random methods...
+        },
+        "Queue" => metadata.Name switch
+        {
+            "SendMessage" => new FunctionMetadata(metadata.Name)
+            {
+                Description = "Sends a message to the Azure Storage Queue.",
+                // Parameter definitions...
+            },
+            // Other Queue methods...
+        },
+        _ => null
+    };
+}
 ```
 
 ### LLM Integration
 
 The sample demonstrates how the LLM can:
 
-- Understand the plugin's purpose through enhanced descriptions
-- Automatically invoke the date formatting function when requested
-- Integrate the plugin response into natural language conversations
+- Understand multiple plugins' purposes through enhanced descriptions
+- Automatically invoke the appropriate function based on user requests
+- Handle method overloads through function name overrides
+- Work with Azure services directly through SDK integration
+- Integrate plugin responses into natural language conversations
 
 ## Key Concepts Demonstrated
 
@@ -112,52 +184,87 @@ The sample demonstrates how the LLM can:
 Any .NET class can become a plugin:
 
 ```csharp
-public class ShortDate
+public class DateTimeWrapper
 {
     public string ToShortDateString()
     {
         return DateTime.Now.ToShortDateString();
     }
+
+    public string ToLongDateString()
+    {
+        return DateTime.Now.ToLongDateString();
+    }
+
+    public string CurrentTime()
+    {
+        return DateTime.Now.ToString("T");
+    }
+    
+    // Additional methods...
 }
 ```
 
 ### 2. Metadata Provider Integration
 
-Enhance basic CLR types with semantic information:
+Enhance CLR types with semantic information:
 
 ```csharp
-public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
-    plugin.Name == "ShortDatePlugin" && metadata.Name == "ToShortDateString" ? 
-        new FunctionMetadata(metadata.Name)
+public class CustomMetadataProvider : IPluginMetadataProvider
+{
+    public PluginMetadata? GetPluginMetadata(KernelPlugin plugin)
+    {
+        return plugin.Name switch
         {
-            Description = "Returns the date in short format."
-        } : null;
+            "DateTimeWrapper" => new PluginMetadata
+            {
+                Description = "This plugin returns date and time information."
+            },
+            "RandomPlugin" => new PluginMetadata
+            {
+                Description = "This plugin generates random numbers and values."
+            },
+            "Queue" => new PluginMetadata
+            {
+                Description = "This plugin interacts with Azure Storage Queues."
+            },
+            _ => null,
+        };
+    }
+
+    // Function metadata implementation...
+}
 ```
 
 ### 3. Flexible Registration Options
 
-- **Type-based**: Register the type, let the framework create instances
-- **Object-based**: Register a specific object instance
+- **Type-based for custom classes**: Register your own classes, letting the framework create instances
+- **Type-based for standard .NET classes**: Register built-in .NET classes like Random, DateTime, etc.
+- **Object-based for service clients**: Register Azure SDK clients and other service objects
+- **Method overload handling**: Use function name overrides for method disambiguation
 
 ## Extending the Sample
 
 You can extend this sample by:
 
-1. **Complex CLR Types**: Register classes with multiple methods and properties
-2. **Parameter Handling**: Add classes with method parameters and custom types
-3. **State Management**: Use object-based registration for stateful plugins
-4. **Dependency Injection**: Integrate with .NET DI container for complex objects
-5. **Generic Types**: Explore registration of generic classes and methods
-6. **Property Exposure**: Extend to expose properties as plugin functions
+1. **Additional Azure Services**: Register other Azure SDK clients like Blob Storage or CosmosDB
+2. **Complex CLR Types**: Register classes with more complex methods and properties
+3. **Authentication Handlers**: Explore different authentication mechanisms for Azure services
+4. **State Management**: Use object-based registration for stateful plugins
+5. **Dependency Injection**: Integrate with .NET DI container for complex objects
+6. **Generic Types**: Explore registration of generic classes and methods
+7. **Property Exposure**: Extend to expose properties as plugin functions
 
 ## Real-World Applications
 
 This pattern is useful for:
 
+- **Azure SDK Integration**: Exposing Azure services directly to AI models
 - **Existing Code Integration**: Converting existing .NET libraries into AI plugins
 - **Utility Functions**: Exposing common utility classes as AI-accessible tools
 - **Business Logic**: Making domain-specific business logic available to AI models
-- **Legacy System Integration**: Bridging older .NET code with modern AI applications
+- **Third-Party SDK Integration**: Bridging external libraries with AI applications
+- **Legacy System Integration**: Connecting older .NET code with modern AI applications
 - **Rapid Prototyping**: Quick conversion of existing classes for AI experimentation
 
 ## Comparison with Other Registration Methods
@@ -167,26 +274,30 @@ This pattern is useful for:
 | `AddFromType` | Standard plugin classes | Simple, attribute-driven | Requires plugin-specific attributes |
 | `AddFromClrType` | Existing .NET classes | No attribute requirements | Limited metadata |
 | `AddFromClrTypeWithMetadata` | Enhanced existing classes | Rich metadata, flexible | Requires metadata provider |
-| `AddFromObject` | Stateful instances | Instance control | Manual lifecycle management |
+| `AddFromObject` | Stateful instances, SDK clients | Instance control, pre-configured clients | Manual lifecycle management |
+| `AddFromClrObjectWithMetadata` | Enhanced SDK clients | Rich metadata, pre-configured instances | Requires metadata provider and manual lifecycle |
 
 ## Best Practices
 
 When using CLR type registration:
 
-1. **Keep It Simple**: Start with simple, focused classes
-2. **Clear Naming**: Use descriptive method names that indicate purpose
-3. **Return Value Types**: Use appropriate return types that LLMs can work with
-4. **Metadata Enhancement**: Always provide metadata providers for better LLM understanding
-5. **Error Handling**: Include proper error handling in your methods
-6. **Thread Safety**: Consider thread safety for shared instances
+1. **Clear Naming**: Use descriptive plugin and function names that indicate purpose
+2. **Meaningful Descriptions**: Provide detailed descriptions for plugins, functions, and parameters
+3. **Method Disambiguation**: Use function name overrides for overloaded methods
+4. **Parameter Documentation**: Document all parameters, especially for complex methods
+5. **Default Values**: Provide default values for optional parameters
+6. **Authentication Handling**: Use appropriate authentication for Azure and other services
+7. **Error Handling**: Include proper error handling in your methods
+8. **Thread Safety**: Consider thread safety for shared instances
 
 ## Learning Objectives
 
 This sample demonstrates:
 
 - How to register existing .NET types as Semantic Kernel plugins
+- How to integrate Azure SDK clients directly as plugins
 - The difference between type-based and object-based plugin registration
-- How metadata providers enhance basic CLR type functionality
-- Integration patterns for existing codebases with AI applications
+- How to handle method overloads using function name overrides
+- How metadata providers enhance CLR type functionality
+- Integration patterns for cloud services with AI applications
 - Best practices for converting utility classes into AI-accessible tools
-- The flexibility of the SemanticPluginForge framework for various plugin types

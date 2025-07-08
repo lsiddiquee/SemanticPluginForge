@@ -6,7 +6,7 @@ namespace SemanticPluginForge.Core;
 /// Class for building a plugin with metadata.
 /// </summary>
 /// <param name="metadataProvider">The metadata provider to retrieve external metadata to use to update the plugin.</param>
-public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBuilder
+public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBuilder, IFunctionBuilder
 {
     private readonly IPluginMetadataProvider _metadataProvider = metadataProvider;
 
@@ -18,37 +18,11 @@ public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBu
         var functions = new List<KernelFunction>();
         foreach (var function in plugin)
         {
-            var functionMeta = _metadataProvider.GetFunctionMetadata(plugin, function.Metadata);
-            if (functionMeta != null)
+            var patchedFunction = PatchKernelFunctionWithMetadata(plugin, function);
+            pluginAltered |= patchedFunction != function; // If the patchedFunction is not the same instance as the original function, it means it has been altered.
+            if (patchedFunction is not null)
             {
-                pluginAltered = true;
-
-                if (functionMeta.Suppress)
-                {
-                    // This function should be suppressed from the plugin.
-                    continue;
-                }
-
-                var method = BuildMethodInvocation(function, functionMeta);
-
-                List<KernelParameterMetadata> parameters = BuildKernelParameters(function, functionMeta);
-
-                var options = new KernelFunctionFromMethodOptions
-                {
-                    FunctionName = functionMeta.OverrideFunctionName ?? functionMeta.Name,
-                    Description = functionMeta.Description ?? function.Metadata.Description,
-                    Parameters = parameters,
-                    ReturnParameter = functionMeta.ReturnParameter == null ? function.Metadata.ReturnParameter : new KernelReturnParameterMetadata(function.Metadata.ReturnParameter)
-                    {
-                        Description = functionMeta.ReturnParameter.Description ?? function.Metadata.Description,
-                    }
-                };
-
-                functions.Add(KernelFunctionFactory.CreateFromMethod(method, options));
-            }
-            else
-            {
-                functions.Add(function);
+                functions.Add(patchedFunction);
             }
         }
 
@@ -60,6 +34,39 @@ public class PluginBuilder(IPluginMetadataProvider metadataProvider) : IPluginBu
         }
 
         return plugin;
+    }
+
+    /// <inheritdoc/>>
+    public KernelFunction? PatchKernelFunctionWithMetadata(KernelPlugin plugin, KernelFunction function)
+    {
+        var functionMeta = _metadataProvider.GetFunctionMetadata(plugin, function.Metadata);
+        if (functionMeta != null)
+        {
+            if (functionMeta.Suppress)
+            {
+                // This function should be suppressed from the plugin.
+                return null;
+            }
+
+            var method = BuildMethodInvocation(function, functionMeta);
+
+            List<KernelParameterMetadata> parameters = BuildKernelParameters(function, functionMeta);
+
+            var options = new KernelFunctionFromMethodOptions
+            {
+                FunctionName = functionMeta.OverrideFunctionName ?? functionMeta.Name,
+                Description = functionMeta.Description ?? function.Metadata.Description,
+                Parameters = parameters,
+                ReturnParameter = functionMeta.ReturnParameter == null ? function.Metadata.ReturnParameter : new KernelReturnParameterMetadata(function.Metadata.ReturnParameter)
+                {
+                    Description = functionMeta.ReturnParameter.Description ?? function.Metadata.Description,
+                }
+            };
+
+            return KernelFunctionFactory.CreateFromMethod(method, options);
+        }
+
+        return function;
     }
 
     private static List<KernelParameterMetadata> BuildKernelParameters(KernelFunction function, FunctionMetadata functionMeta)

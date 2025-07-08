@@ -1,11 +1,10 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.SemanticKernel;
 using SemanticPluginForge.Core;
 
 namespace SemanticPluginForge.UnitTests
 {
-    public class KernelPluginForgeTests
+    public partial class KernelPluginForgeTests
     {
         [Fact]
         public void CreateFromClrObjectWithMetadata_ShouldReturnValidPlugin()
@@ -88,27 +87,73 @@ namespace SemanticPluginForge.UnitTests
             act.Should().Throw<ArgumentException>();
         }
 
-        private class StubPluginWithoutAttribute
+        [Fact]
+        public void CreateFromClrObjectWithMetadata_FiltersDuplicateMethods()
         {
-            public string ToShortDateString()
-            {
-                return DateTime.Now.ToShortDateString();
-            }
+            // Arrange
+            var serviceProvider = new ServiceCollection()
+                .AddSingleton<IPluginMetadataProvider, AsyncMethodsMetadataProvider>()
+                .BuildServiceProvider();
+
+            var target = new AsyncMethodsPlugin();
+            var pluginName = "AsyncMethodsPlugin";
+
+            // Act
+            var plugin = KernelPluginForge.CreateFromClrObjectWithMetadata(target, serviceProvider, pluginName);
+
+            // Assert
+            plugin.Should().NotBeNull();
+            plugin.Name.Should().Be(pluginName);
+            plugin.FunctionsMetaShouldBe([
+                new FunctionMetadata("GetData")
+                {
+                    Description = "Function GetData for testing async filtering.",
+                    Parameters = [],
+                    ReturnParameter = new ReturnParameterMetadata { Description = string.Empty }
+                }
+            ]);
         }
 
-        private class StubPluginMetadataProvider : IPluginMetadataProvider
+        [Fact]
+        public void CreateFromClrObjectWithMetadata_FiltersOpenGenericMethods()
         {
-            public PluginMetadata? GetPluginMetadata(KernelPlugin plugin) =>
-                plugin.Name == "DateTimePlugin" ? new PluginMetadata
-                {
-                    Description = "This plugin returns date and time information."
-                } : null;
+            // Arrange
+            var serviceProvider = new ServiceCollection()
+                .AddSingleton<IPluginMetadataProvider, GenericMethodsPluginMetadataProvider>()
+                .BuildServiceProvider();
 
-            public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
-                plugin.Name == "DateTimePlugin" && metadata.Name == "ToShortDateString" ? new FunctionMetadata(metadata.Name)
+            var pluginName = "GenericMethodsPlugin";
+
+            // Act
+            var plugin = KernelPluginForge.CreateFromClrTypeWithMetadata<GenericMethodsPlugin<string>>(serviceProvider, pluginName);
+
+            // Assert
+            plugin.Should().NotBeNull();
+            plugin.Name.Should().Be(pluginName);
+            plugin.FunctionsMetaShouldBe([
+                new FunctionMetadata("ClosedGenericMethod")
                 {
-                    Description = "Returns the date in short format."
-                } : null;
+                    Description = "Closed generic method that returns a default value of type T.",
+                    Parameters = [],
+                    ReturnParameter = new ReturnParameterMetadata { Description = string.Empty }
+                },
+                // new FunctionMetadata("OpenGenericMethodWithParameter")
+                // {
+                //     Description = "Open generic method with one type parameter."
+                // },
+                // new FunctionMetadata("OpenGenericMethodWithMultipleParameters")
+                // {
+                //     Description = "Open generic method with multiple type parameters."
+                // },
+                // new FunctionMetadata("OpenGenericMethodWithReturnType")
+                // {
+                //     Description = "Open generic method with a generic return type."
+                // },
+                // new FunctionMetadata("OpenGenericMethodWithReturnTypeAndParameters")
+                // {
+                //     Description = "Open generic method with a generic return type and parameters."
+                // }
+            ]);
         }
     }
 }

@@ -117,29 +117,91 @@ This ensures that suppressed parameters are handled gracefully without causing r
   
 The library allows you to use any CLR type or object as a plugin without requiring `KernelFunction` attribute. This enables you to create plugins from existing objects or types, making it easier to integrate with existing codebases.
 
+### CLR Type Discovery and Method Selection
+
+When registering CLR types or objects as plugins, the library follows these rules:
+
+1. **Open Generic Methods**: Open generic methods are filtered out and not exposed as plugin functions.
+
+2. **TAP Method Normalization**: Methods following the Task-based Asynchronous Pattern (TAP) are normalized by:
+   - Removing any `CancellationToken` parameter
+   - Removing the `Async` suffix from method names
+   - Preferred selection order is: method with `CancellationToken` parameter, then method with `Async` suffix
+
+3. **Handling Overloaded Methods**: For methods with the same name but different parameters, you can use `FunctionMetadata.OverrideFunctionName` in your metadata provider to give each overload a unique name:
+
+```csharp
+// Handling the Random.Next() overloads
+public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata)
+{
+    return plugin.Name switch
+    {
+        "RandomPlugin" => metadata.Name switch
+        {
+            "Next" when metadata.Parameters.Count == 0 => new FunctionMetadata(metadata.Name)
+            {
+                Description = "Returns a non-negative random integer."
+            },
+            "Next" when metadata.Parameters.Count == 1 => new FunctionMetadata(metadata.Name)
+            {
+                OverrideFunctionName = "NextWithUpperBound",
+                Description = "Returns a random integer within a specified range.",
+                Parameters = [
+                    new ParameterMetadata("maxValue") 
+                    { 
+                        Description = "The exclusive upper bound of the random number returned." 
+                    }
+                ]
+            },
+            "Next" when metadata.Parameters.Count == 2 => new FunctionMetadata(metadata.Name)
+            {
+                OverrideFunctionName = "NextWithRange",
+                Description = "Returns a random integer within a specified range.",
+                Parameters = [
+                    new ParameterMetadata("minValue") { Description = "The inclusive lower bound of the random number returned." },
+                    new ParameterMetadata("maxValue") { Description = "The exclusive upper bound of the random number returned." }
+                ]
+            },
+            _ => null
+        },
+        _ => null
+    };
+}
+```
+
 **Sample Type and Metadata Provider:**
 
 ```csharp
-public class ShortDate
+public class DateTimeWrapper
 {
   public string ToShortDateString()
   {
     return DateTime.Now.ToShortDateString();
+  }
+  
+  public string ToLongDateString()
+  {
+    return DateTime.Now.ToLongDateString();
+  }
+  
+  public string CurrentTime()
+  {
+    return DateTime.Now.ToString("T");
   }
 }
 
 public class CustomMetadataProvider : IPluginMetadataProvider
 {
   public PluginMetadata? GetPluginMetadata(KernelPlugin plugin) =>
-    plugin.Name == "ShortDatePlugin" ? new PluginMetadata
+    plugin.Name == "DateTimeWrapper" ? new PluginMetadata
     {
       Description = "This plugin returns date and time information."
     } : null;
 
   public FunctionMetadata? GetFunctionMetadata(KernelPlugin plugin, KernelFunctionMetadata metadata) =>
-    plugin.Name == "ShortDatePlugin" && metadata.Name == "ToShortDateString" ? new FunctionMetadata(metadata.Name)
+    plugin.Name == "DateTimeWrapper" && metadata.Name == "ToShortDateString" ? new FunctionMetadata(metadata.Name)
     {
-      Description = "Returns the date in short format."
+      Description = "Returns the current date in short format (MM/dd/yyyy)."
     } : null;
 }
 ```
@@ -149,7 +211,7 @@ public class CustomMetadataProvider : IPluginMetadataProvider
 **Usage Example:**
 
 ```csharp
-kernelBuilder.Plugins.AddFromClrObjectWithMetadata(new ShortDate(), "ShortDatePlugin");
+kernelBuilder.Plugins.AddFromClrObjectWithMetadata(new DateTimeWrapper(), "DateTimeWrapper");
 ```
 
 ### CreateFromClrTypeWithMetadata: Using an existing type to create a plugin
@@ -157,7 +219,16 @@ kernelBuilder.Plugins.AddFromClrObjectWithMetadata(new ShortDate(), "ShortDatePl
 **Usage Example:**
 
 ```csharp
-kernelBuilder.Plugins.AddFromClrTypeWithMetadata<ShortDate>("ShortDatePlugin");
+kernelBuilder.Plugins.AddFromClrTypeWithMetadata<DateTimeWrapper>("DateTimeWrapper");
+```
+
+### Example with Azure SDK Client
+
+**Usage Example:**
+
+```csharp
+var qc = new QueueClient(new Uri("https://your-storage.queue.core.windows.net/your-queue"), new DefaultAzureCredential());
+kernelBuilder.Plugins.AddFromClrObjectWithMetadata(qc, "Queue");
 ```
 
 ## Samples
@@ -168,7 +239,7 @@ Explore the [`samples`](https://github.com/lsiddiquee/SemanticPluginForge/sample
 
 - **[DefaultValue](https://github.com/lsiddiquee/SemanticPluginForge/samples/DefaultValue/)**: Demonstrates advanced parameter handling including suppression, default values, and context-aware metadata. Shows how to override parameter descriptions and ensure parameters are never resolved from context when suppressed.
 
-- **[UseClrType](https://github.com/lsiddiquee/SemanticPluginForge/samples/UseClrType/)**: Shows how to use existing .NET classes as Semantic Kernel plugins without requiring `KernelFunction` attributes. Demonstrates both type-based and object-based registration approaches.
+- **[UseClrType](https://github.com/lsiddiquee/SemanticPluginForge/samples/UseClrType/)**: Shows how to use existing .NET classes as Semantic Kernel plugins without requiring `KernelFunction` attributes. Demonstrates multiple plugin types including custom classes, standard .NET classes like `Random`, and direct Azure SDK integration through `QueueClient`. Features function name overriding for handling method overloads.
 
 - **[AzureAiSearchPlugin](https://github.com/lsiddiquee/SemanticPluginForge/samples/AzureAiSearchPlugin/)**: Comprehensive example showing how to create multiple instances of the same plugin class with different metadata configurations for various data sources. Uses mocked data for learning without external dependencies.
 
