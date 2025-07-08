@@ -63,18 +63,21 @@ public static class KernelPluginForge
 
         var methods = target.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).ToList();
 
+        // Filter out methods with open generic parameters.
+        FilterMethodsWithOpenGeneric(methods, logger);
         // Filter out methods with TAP.
         FilterMethodsWithAsyncOverloads(methods, logger);
 
         // Include only functions that have the metadata defined.
         var functions = new List<KernelFunction>();
+        var pluginBuilder = new PluginBuilder(metadataProvider);
         foreach (MethodInfo method in methods)
         {
             var kernelFunction = KernelFunctionFactory.CreateFromMethod(method, target, loggerFactory: loggerFactory);
-            var functionMetadata = metadataProvider.GetFunctionMetadata(temporaryPlugin, kernelFunction.Metadata);
-            if (functionMetadata is not null)
+            var patchedFunction = pluginBuilder.PatchKernelFunctionWithMetadata(temporaryPlugin, kernelFunction);
+            if (patchedFunction is not null && patchedFunction != kernelFunction)
             {
-                functions.Add(kernelFunction);
+                functions.Add(patchedFunction);
             }
         }
         if (functions.Count == 0)
@@ -87,8 +90,7 @@ public static class KernelPluginForge
             logger.LogTrace("Created plugin {PluginName} with {IncludedFunctions} [KernelFunction] methods out of {TotalMethods} methods found.", pluginName, functions.Count, methods.Count);
         }
 
-        var kernelPlugin = KernelPluginFactory.CreateFromFunctions(pluginName, pluginMetadata?.Description, functions);
-        return PatchKernelPluginWithMetadata(kernelPlugin, metadataProvider);
+        return KernelPluginFactory.CreateFromFunctions(pluginName, pluginMetadata?.Description, functions);
     }
 
     /// <summary>
@@ -170,6 +172,22 @@ public static class KernelPluginForge
     }
 
     /// <summary>
+    /// Filters out methods with open generic parameters.
+    /// </summary>
+    /// <param name="methods">The list of methods to filter.</param>
+    /// <param name="logger">The logger.</param>
+    private static void FilterMethodsWithOpenGeneric(List<MethodInfo> methods, ILogger? logger)
+    {
+        // First, filter out methods with open generic parameters
+        var methodsToRemove = methods.Where(m => m.ContainsGenericParameters || m.IsGenericMethodDefinition).ToList();
+        foreach (var method in methodsToRemove)
+        {
+            logger?.LogInformation("Suppressing generic method {MethodName} with generic parameters", method.Name);
+            methods.Remove(method);
+        }
+    }
+
+    /// <summary>
     /// Filters out methods that have overloads with only difference being a CancellationToken parameter and/or Async suffix.
     /// </summary>
     /// <param name="methods">The list of methods to filter.</param>
@@ -178,7 +196,7 @@ public static class KernelPluginForge
     {
         // Create a normalized list of methods where we remove the CancellationToken parameter and Async suffix.
         var methodMetaList = methods.Select(m => new MethodMeta(m)).ToArray();
-        
+
         for (int i = 0; i < methodMetaList.Length; i++)
         {
             for (int j = i + 1; j < methodMetaList.Length; j++)

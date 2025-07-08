@@ -8,6 +8,139 @@ namespace SemanticPluginForge.UnitTests;
 
 public class PluginBuilderTests
 {
+    #region PatchKernelFunctionWithMetadata Tests
+
+    [Fact]
+    public void PatchKernelFunctionWithMetadata_ShouldReturnOriginalFunction_WhenNoFunctionMetadataExists()
+    {
+        // Arrange
+        var metadataProviderMock = new Mock<IPluginMetadataProvider>();
+        metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
+            .Returns(null as FunctionMetadata);
+
+        var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
+        var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
+        var originalFunction = kernelPlugin[nameof(SamplePlugin.GetCurrentUsername)];
+
+        // Act
+        var result = pluginBuilder.PatchKernelFunctionWithMetadata(kernelPlugin, originalFunction);
+
+        // Assert
+        result.Should().BeSameAs(originalFunction);
+    }
+
+    [Fact]
+    public void PatchKernelFunctionWithMetadata_ShouldReturnNull_WhenFunctionIsSuppressed()
+    {
+        // Arrange
+        var metadataProviderMock = new Mock<IPluginMetadataProvider>();
+        metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
+            .Returns(new FunctionMetadata("test") { Suppress = true });
+
+        var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
+        var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
+        var originalFunction = kernelPlugin[nameof(SamplePlugin.GetCurrentUsername)];
+
+        // Act
+        var result = pluginBuilder.PatchKernelFunctionWithMetadata(kernelPlugin, originalFunction);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public void PatchKernelFunctionWithMetadata_ShouldReturnPatchedFunction_WhenMetadataExists()
+    {
+        // Arrange
+        var metadataProviderMock = new Mock<IPluginMetadataProvider>();
+        metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
+            .Returns(new FunctionMetadata("test") { Description = "Patched description" });
+
+        var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
+        var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
+        var originalFunction = kernelPlugin[nameof(SamplePlugin.GetCurrentUsername)];
+
+        // Act
+        var result = pluginBuilder.PatchKernelFunctionWithMetadata(kernelPlugin, originalFunction);
+
+        // Assert
+        result.Should().NotBeSameAs(originalFunction);
+        result.Should().NotBeNull();
+        result!.Metadata.Description.Should().Be("Patched description");
+    }
+
+    [Fact]
+    public void PatchKernelFunctionWithMetadata_ShouldOverrideFunctionName_WhenOverrideNameIsSpecified()
+    {
+        // Arrange
+        var metadataProviderMock = new Mock<IPluginMetadataProvider>();
+        metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
+            .Returns(new FunctionMetadata("test") { OverrideFunctionName = "NewFunctionName" });
+
+        var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
+        var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
+        var originalFunction = kernelPlugin[nameof(SamplePlugin.GetCurrentUsername)];
+
+        // Act
+        var result = pluginBuilder.PatchKernelFunctionWithMetadata(kernelPlugin, originalFunction);
+
+        // Assert
+        result.Should().NotBeSameAs(originalFunction);
+        result.Should().NotBeNull();
+        result!.Metadata.Name.Should().Be("NewFunctionName");
+    }
+
+    [Fact]
+    public void PatchKernelFunctionWithMetadata_ShouldThrowException_WhenSuppressingRequiredParameterWithoutDefault()
+    {
+        // Arrange
+        var metadataProviderMock = new Mock<IPluginMetadataProvider>();
+        metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
+            .Returns(new FunctionMetadata("test") { 
+                Parameters = new List<ParameterMetadata> { 
+                    new ParameterMetadata("name") { Suppress = true } 
+                } 
+            });
+
+        var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
+        var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
+        var originalFunction = kernelPlugin[nameof(SamplePlugin.GetTemperatureByCity)];
+
+        // Act & Assert
+        pluginBuilder.Invoking(x => x.PatchKernelFunctionWithMetadata(kernelPlugin, originalFunction))
+            .Should().Throw<ArgumentException>()
+            .WithMessage("Parameter 'name' is required and cannot be suppressed without a default value.");
+    }
+
+    [Fact]
+    public async Task PatchKernelFunctionWithMetadata_ShouldUseSuppressedParameterDefaultAsync()
+    {
+        // Arrange
+        var metadataProviderMock = new Mock<IPluginMetadataProvider>();
+        metadataProviderMock.Setup(p => p.GetFunctionMetadata(It.IsAny<KernelPlugin>(), It.IsAny<KernelFunctionMetadata>()))
+            .Returns(new FunctionMetadata("test") { 
+                Parameters = new List<ParameterMetadata> { 
+                    new ParameterMetadata("name") { Suppress = true, DefaultValue = "DefaultCity" } 
+                } 
+            });
+
+        var pluginBuilder = new PluginBuilder(metadataProviderMock.Object);
+        var kernelPlugin = KernelPluginFactory.CreateFromObject(new SamplePlugin());
+        var originalFunction = kernelPlugin[nameof(SamplePlugin.GetTemperatureByCity)];
+
+        // Act
+        var result = pluginBuilder.PatchKernelFunctionWithMetadata(kernelPlugin, originalFunction);
+        var invokeResult = await result!.InvokeAsync(new Kernel());
+
+        // Assert
+        result.Should().NotBeSameAs(originalFunction);
+        result.Metadata.Parameters.Should().NotContain(p => p.Name == "name");
+        invokeResult.GetValue<string>().Should().Be("DefaultCity temperature is 20 degrees celsius");
+    }
+
+    #endregion
+
+    #region PatchKernelPluginWithMetadata Tests
     [Fact]
     public void PatchKernelPluginWithMetadata_ShouldReturnUnalteredPlugin_WhenNoFunctionMetadataExists()
     {
@@ -333,6 +466,10 @@ public class PluginBuilderTests
         functionResult.GetValue<string>().Should().Be("my_user");
     }
 
+    #endregion
+
+    #region Helper Methods
+
     private List<FunctionMetadata> GetExpectedFunctionsMetadata(
         string usernameFunctionDescription = "Returns the current username.",
         string usernameReturnDescription = "",
@@ -384,4 +521,6 @@ public class PluginBuilderTests
             }
         ];
     }
+
+    #endregion
 }

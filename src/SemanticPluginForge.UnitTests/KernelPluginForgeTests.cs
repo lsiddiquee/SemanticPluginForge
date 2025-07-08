@@ -1,6 +1,5 @@
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.SemanticKernel;
 using SemanticPluginForge.Core;
 
 namespace SemanticPluginForge.UnitTests
@@ -112,6 +111,48 @@ namespace SemanticPluginForge.UnitTests
                     Parameters = [],
                     ReturnParameter = new ReturnParameterMetadata { Description = string.Empty }
                 }
+            ]);
+        }
+
+        [Fact]
+        public void CreateFromClrObjectWithMetadata_FiltersOpenGenericMethods()
+        {
+            // Arrange
+            var serviceProvider = new ServiceCollection()
+                .AddSingleton<IPluginMetadataProvider, GenericMethodsPluginMetadataProvider>()
+                .BuildServiceProvider();
+
+            var pluginName = "GenericMethodsPlugin";
+
+            // Act
+            var plugin = KernelPluginForge.CreateFromClrTypeWithMetadata<GenericMethodsPlugin<string>>(serviceProvider, pluginName);
+
+            // Assert
+            plugin.Should().NotBeNull();
+            plugin.Name.Should().Be(pluginName);
+            plugin.FunctionsMetaShouldBe([
+                new FunctionMetadata("ClosedGenericMethod")
+                {
+                    Description = "Closed generic method that returns a default value of type T.",
+                    Parameters = [],
+                    ReturnParameter = new ReturnParameterMetadata { Description = string.Empty }
+                },
+                // new FunctionMetadata("OpenGenericMethodWithParameter")
+                // {
+                //     Description = "Open generic method with one type parameter."
+                // },
+                // new FunctionMetadata("OpenGenericMethodWithMultipleParameters")
+                // {
+                //     Description = "Open generic method with multiple type parameters."
+                // },
+                // new FunctionMetadata("OpenGenericMethodWithReturnType")
+                // {
+                //     Description = "Open generic method with a generic return type."
+                // },
+                // new FunctionMetadata("OpenGenericMethodWithReturnTypeAndParameters")
+                // {
+                //     Description = "Open generic method with a generic return type and parameters."
+                // }
             ]);
         }
     }

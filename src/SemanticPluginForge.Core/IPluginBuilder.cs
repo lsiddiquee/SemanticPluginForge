@@ -8,9 +8,9 @@ namespace SemanticPluginForge.Core;
 public interface IPluginBuilder
 {
     /// <summary>
-    /// Patch a KernelPlugin object with external metadata.
+    /// Patch a KernelPlugin object.
     /// </summary>
-    /// <param name="plugin">The plugin which should be patched with external metadata.</param>
+    /// <param name="plugin">The plugin which should be patched.</param>
     /// <returns>Returns the patched plugin instance.</returns>
     KernelPlugin PatchKernelPluginWithMetadata(KernelPlugin plugin);
 }
