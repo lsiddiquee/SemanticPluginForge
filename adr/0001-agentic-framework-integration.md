@@ -1,6 +1,23 @@
-# Agentic Framework Integration Design
+# ADR-0001: Agentic Framework Integration Design
 
-This document outlines the design for integrating SemanticPluginForge with Microsoft Semantic Kernel's newly released agentic framework, enabling dynamic metadata customization for AI agents and their plugins.
+## Status
+
+Proposed
+
+## Context
+
+Microsoft Semantic Kernel recently released an agentic framework that introduces a new paradigm for building autonomous AI agents. These agents can use tools, collaborate with other agents, and execute complex workflows. However, the current framework lacks dynamic metadata customization capabilities for agent plugins.
+
+SemanticPluginForge provides dynamic metadata customization for Semantic Kernel plugins, but it was designed before the agentic framework existed. We need to explore how SemanticPluginForge can be extended to support agent-specific scenarios, including:
+
+- Different agents needing different metadata for the same plugins based on their role
+- Runtime modification of agent capabilities without redeployment
+- Multi-agent collaboration with specialized tooling per agent
+- Context-aware plugin behavior based on agent identity and role
+
+## Decision
+
+We propose extending SemanticPluginForge to support the agentic framework through an agent-aware metadata provider pattern. This document outlines the design for integrating SemanticPluginForge with Microsoft Semantic Kernel's agentic framework, enabling dynamic metadata customization for AI agents and their plugins.
 
 ## Overview
 
@@ -545,6 +562,30 @@ public async Task AgentGroupChat_EachAgentSeesCustomizedPlugins()
 3. **Agent Metadata Policies**: Declarative rules for agent capability management
 4. **Cross-Agent Learning**: Share successful metadata configurations across agent instances
 5. **Agent Plugin Marketplace**: Discover and configure pre-built agent plugins with metadata
+
+## Consequences
+
+### Positive
+
+1. **Enhanced Agent Specialization**: Different agents can have specialized views of the same plugins, enabling more sophisticated multi-agent scenarios
+2. **Runtime Flexibility**: Agent capabilities can be changed without redeployment, reducing downtime and enabling dynamic adaptation
+3. **Security and Governance**: Fine-grained control over which agents can access which functions improves security posture
+4. **Backward Compatibility**: Existing SemanticPluginForge functionality remains fully supported for non-agent scenarios
+5. **Natural Extension**: The agent-aware pattern extends naturally from the existing `IPluginMetadataProvider` architecture
+6. **Simplified Management**: Centralized metadata management for agent fleets reduces configuration complexity
+
+### Negative
+
+1. **Additional Complexity**: Introduces new concepts (AgentContext, IAgentPluginMetadataProvider) that developers need to learn
+2. **Performance Considerations**: Agent context propagation and metadata resolution could impact performance in high-throughput scenarios (mitigated by caching)
+3. **Testing Overhead**: Multi-agent scenarios require more comprehensive testing strategies
+4. **Migration Effort**: Existing users wanting agent support will need to adopt new APIs
+
+### Neutral
+
+1. **API Surface Expansion**: New interfaces and extension methods increase the overall API surface of the library
+2. **Documentation Requirements**: Requires comprehensive documentation of agent-specific features and patterns
+3. **Dependency on Semantic Kernel**: Tighter coupling to Semantic Kernel's agentic framework evolution
 
 ## Conclusion
 
