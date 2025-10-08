@@ -15,5 +15,7 @@
     href: function-name-override.md
 - name: Samples
   href: samples.md
+- name: Agentic Framework Integration
+  href: agentic-framework-integration.md
 - name: API Reference
   href: ../api/
