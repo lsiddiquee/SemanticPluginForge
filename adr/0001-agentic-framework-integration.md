@@ -113,12 +113,11 @@ New extension methods for building agent kernels with metadata support:
 public static class AgentKernelBuilderExtensions
 {
     /// <summary>
-    /// Creates a kernel for an agent with metadata provider support
+    /// Creates a kernel for an agent with metadata provider support resolved from DI
     /// </summary>
     public static Kernel BuildForAgent(
         this IKernelBuilder builder,
-        string agentName,
-        IAgentPluginMetadataProvider metadataProvider)
+        string agentName)
     {
         var kernel = builder.Build();
         
@@ -132,6 +131,26 @@ public static class AgentKernelBuilderExtensions
     }
     
     /// <summary>
+    /// Creates a kernel for an agent with explicit metadata provider (non-DI scenario)
+    /// </summary>
+    public static Kernel BuildForAgent(
+        this IKernelBuilder builder,
+        string agentName,
+        IAgentPluginMetadataProvider metadataProvider)
+    {
+        var kernel = builder.Build();
+        
+        // Register agent context and metadata provider for plugin resolution
+        kernel.Data[AgentContextKey] = new AgentContext
+        {
+            AgentName = agentName
+        };
+        kernel.Data[MetadataProviderKey] = metadataProvider;
+        
+        return kernel;
+    }
+    
+    /// <summary>
     /// Adds plugins to agent kernel with agent-specific metadata
     /// </summary>
     public static IKernelBuilderPlugins AddFromTypeForAgent<T>(
@@ -140,6 +159,7 @@ public static class AgentKernelBuilderExtensions
         string? pluginName = null)
     {
         // Implementation using PluginBuilder with agent context
+        // Resolves IAgentPluginMetadataProvider from DI
         return plugins;
     }
 }
@@ -150,18 +170,38 @@ public static class AgentKernelBuilderExtensions
 Simplified registration for agent-specific plugins:
 
 ```csharp
-// Configure agent kernel with metadata provider
+// Configure services with metadata provider
+services.AddSingleton<IAgentPluginMetadataProvider, RoleBasedMetadataProvider>();
+
+// Build kernel with DI - metadata provider resolved automatically
 var kernelBuilder = Kernel.CreateBuilder()
     .AddOpenAIChatCompletion(modelId, apiKey);
 
-services.AddSingleton<IAgentPluginMetadataProvider, RoleBasedMetadataProvider>();
-
-var agentKernel = kernelBuilder.BuildForAgent(
-    agentName: "CustomerSupportAgent",
-    metadataProvider: new RoleBasedMetadataProvider()
-);
+var agentKernel = kernelBuilder.BuildForAgent("CustomerSupportAgent");
 
 // Plugins automatically customized based on agent context
+agentKernel.Plugins.AddFromTypeForAgent<WeatherPlugin>(
+    new AgentContext { AgentName = "CustomerSupportAgent" }
+);
+
+var agent = new ChatCompletionAgent
+{
+    Name = "SupportAgent",
+    Instructions = "You help customers with weather information.",
+    Kernel = agentKernel
+};
+```
+
+**Non-DI Scenario** (when dependency injection is not available):
+
+```csharp
+var metadataProvider = new RoleBasedMetadataProvider();
+var kernelBuilder = Kernel.CreateBuilder()
+    .AddOpenAIChatCompletion(modelId, apiKey);
+
+// Pass metadata provider explicitly for non-DI scenarios
+var agentKernel = kernelBuilder.BuildForAgent("CustomerSupportAgent", metadataProvider);
+
 agentKernel.Plugins.AddFromTypeForAgent<WeatherPlugin>(
     new AgentContext { AgentName = "CustomerSupportAgent" }
 );
@@ -453,8 +493,8 @@ public class AgentGroupChatBuilder
     private Kernel CreateKernelForAgent(string agentName)
     {
         var builder = Kernel.CreateBuilder();
-        // Configure with agent-specific metadata
-        var kernel = builder.BuildForAgent(agentName, _metadataProvider);
+        // Configure with agent-specific metadata (uses DI)
+        var kernel = builder.BuildForAgent(agentName);
         return kernel;
     }
 }
@@ -471,7 +511,7 @@ kernelBuilder.Plugins.AddFromTypeWithMetadata<MyPlugin>();
 
 // After: Agent-aware plugin registration (backward compatible)
 services.AddSingleton<IAgentPluginMetadataProvider, MyAgentMetadataProvider>();
-var agentKernel = kernelBuilder.BuildForAgent("AssistantAgent", metadataProvider);
+var agentKernel = kernelBuilder.BuildForAgent("AssistantAgent");
 agentKernel.Plugins.AddFromTypeForAgent<MyPlugin>();
 ```
 
