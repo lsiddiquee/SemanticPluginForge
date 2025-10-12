@@ -55,8 +55,8 @@ kernel.Plugins.AddFromType<WeatherPlugin>();
 ### Goals
 
 1. **Dynamic Agent Capabilities**: Allow runtime modification of agent plugin metadata without redeploying agents
-2. **Context-Aware Plugins**: Enable different agents to see different metadata for the same plugin based on their role or context
-3. **Agent-Specific Customization**: Support per-agent plugin configurations for specialized behaviors
+2. **Agent-Specific Plugins**: Enable different agents to see different metadata for the same plugin based on their name or identity
+3. **Simplified Configuration**: Support per-agent plugin configurations using agent name as the primary identifier
 4. **Multi-Agent Scenarios**: Facilitate metadata customization in agent group chats and collaboration scenarios
 
 ### Architecture
@@ -100,9 +100,7 @@ public interface IAgentPluginMetadataProvider : IPluginMetadataProvider
 
 public class AgentContext
 {
-    public string AgentId { get; set; }
     public string AgentName { get; set; }
-    public string AgentRole { get; set; }
     public IDictionary<string, object> Properties { get; set; }
 }
 ```
@@ -119,8 +117,7 @@ public static class AgentKernelBuilderExtensions
     /// </summary>
     public static Kernel BuildForAgent(
         this IKernelBuilder builder,
-        string agentId,
-        string agentRole,
+        string agentName,
         IAgentPluginMetadataProvider metadataProvider)
     {
         var kernel = builder.Build();
@@ -128,8 +125,7 @@ public static class AgentKernelBuilderExtensions
         // Register agent context for plugin resolution
         kernel.Data[AgentContextKey] = new AgentContext
         {
-            AgentId = agentId,
-            AgentRole = agentRole
+            AgentName = agentName
         };
         
         return kernel;
@@ -161,14 +157,13 @@ var kernelBuilder = Kernel.CreateBuilder()
 services.AddSingleton<IAgentPluginMetadataProvider, RoleBasedMetadataProvider>();
 
 var agentKernel = kernelBuilder.BuildForAgent(
-    agentId: "assistant-001",
-    agentRole: "customer-support",
+    agentName: "CustomerSupportAgent",
     metadataProvider: new RoleBasedMetadataProvider()
 );
 
 // Plugins automatically customized based on agent context
 agentKernel.Plugins.AddFromTypeForAgent<WeatherPlugin>(
-    new AgentContext { AgentRole = "customer-support" }
+    new AgentContext { AgentName = "CustomerSupportAgent" }
 );
 
 var agent = new ChatCompletionAgent
@@ -195,9 +190,10 @@ public class RoleBasedMetadataProvider : IAgentPluginMetadataProvider
     {
         if (plugin.Name == "WeatherPlugin" && metadata.Name == "GetTemperature")
         {
-            return context.AgentRole switch
+            // Use agent name to determine capabilities
+            return context.AgentName switch
             {
-                "customer-support" => new FunctionMetadata(metadata.Name)
+                "CustomerSupportAgent" => new FunctionMetadata(metadata.Name)
                 {
                     Description = "Get current temperature for customer's location. Always ask for city first.",
                     Parameters = [
@@ -208,7 +204,7 @@ public class RoleBasedMetadataProvider : IAgentPluginMetadataProvider
                         }
                     ]
                 },
-                "operations" => new FunctionMetadata(metadata.Name)
+                "OperationsAgent" => new FunctionMetadata(metadata.Name)
                 {
                     Description = "Get temperature data for operational monitoring.",
                     Parameters = [
@@ -233,14 +229,14 @@ In multi-agent scenarios, each agent has specialized tool access:
 var weatherAgent = new ChatCompletionAgent
 {
     Name = "WeatherExpert",
-    Kernel = CreateAgentKernel("weather-specialist"),
+    Kernel = CreateAgentKernel("WeatherExpert"),
     Instructions = "You are a weather specialist."
 };
 
 var travelAgent = new ChatCompletionAgent
 {
     Name = "TravelAdvisor",
-    Kernel = CreateAgentKernel("travel-advisor"),
+    Kernel = CreateAgentKernel("TravelAdvisor"),
     Instructions = "You help plan trips."
 };
 
@@ -249,12 +245,12 @@ var metadataProvider = new MultiAgentMetadataProvider();
 
 // Weather agent sees detailed meteorological functions
 weatherAgent.Kernel.Plugins.AddFromTypeForAgent<WeatherPlugin>(
-    new AgentContext { AgentRole = "weather-specialist" }
+    new AgentContext { AgentName = "WeatherExpert" }
 );
 
 // Travel agent sees simplified travel-focused functions
 travelAgent.Kernel.Plugins.AddFromTypeForAgent<WeatherPlugin>(
-    new AgentContext { AgentRole = "travel-advisor" }
+    new AgentContext { AgentName = "TravelAdvisor" }
 );
 
 // Group chat with specialized agents
@@ -276,7 +272,7 @@ public class DynamicCapabilityMetadataProvider : IAgentPluginMetadataProvider
         AgentContext context)
     {
         // Check if agent has permission for this capability
-        if (!_capabilityManager.HasCapability(context.AgentId, $"{plugin.Name}.{metadata.Name}"))
+        if (!_capabilityManager.HasCapability(context.AgentName, $"{plugin.Name}.{metadata.Name}"))
         {
             return new FunctionMetadata(metadata.Name)
             {
@@ -285,7 +281,7 @@ public class DynamicCapabilityMetadataProvider : IAgentPluginMetadataProvider
         }
         
         // Customize based on agent's capability level
-        var level = _capabilityManager.GetCapabilityLevel(context.AgentId, plugin.Name);
+        var level = _capabilityManager.GetCapabilityLevel(context.AgentName, plugin.Name);
         return level switch
         {
             "basic" => CreateBasicMetadata(metadata),
@@ -306,14 +302,14 @@ var agentChannel = new AgentChannel<ChatCompletionAgent>();
 
 var sender = new ChatCompletionAgent
 {
-    Name = "Sender",
-    Kernel = CreateChannelAgentKernel("sender", agentChannel.Id)
+    Name = "SenderAgent",
+    Kernel = CreateChannelAgentKernel("SenderAgent", agentChannel.Id)
 };
 
 var receiver = new ChatCompletionAgent
 {
-    Name = "Receiver",
-    Kernel = CreateChannelAgentKernel("receiver", agentChannel.Id)
+    Name = "ReceiverAgent",
+    Kernel = CreateChannelAgentKernel("ReceiverAgent", agentChannel.Id)
 };
 
 // Metadata provider aware of channel context
@@ -324,15 +320,15 @@ public class ChannelAwareMetadataProvider : IAgentPluginMetadataProvider
         KernelFunctionMetadata metadata,
         AgentContext context)
     {
-        // Customize based on agent's role in the channel
-        var channelRole = context.Properties["ChannelRole"] as string;
+        // Customize based on agent name or additional properties
+        var channelRole = context.Properties?["ChannelRole"] as string;
         
-        if (channelRole == "sender")
+        if (channelRole == "sender" || context.AgentName.Contains("Sender"))
         {
             // Sender agents have send capabilities
             return CreateSenderMetadata(metadata);
         }
-        else if (channelRole == "receiver")
+        else if (channelRole == "receiver" || context.AgentName.Contains("Receiver"))
         {
             // Receiver agents have receive capabilities
             return CreateReceiverMetadata(metadata);
@@ -387,7 +383,7 @@ public class CachedAgentPluginMetadataProvider : IAgentPluginMetadataProvider
         KernelFunctionMetadata metadata,
         AgentContext context)
     {
-        var cacheKey = $"{context.AgentId}:{plugin.Name}:{metadata.Name}";
+        var cacheKey = $"{context.AgentName}:{plugin.Name}:{metadata.Name}";
         
         return _cache.GetOrCreate(cacheKey, entry =>
         {
@@ -409,19 +405,19 @@ public interface IRefreshableAgentPluginMetadataProvider : IAgentPluginMetadataP
 {
     event EventHandler<AgentMetadataChangedEventArgs> MetadataChanged;
     
-    void RefreshMetadata(string agentId);
+    void RefreshMetadata(string agentName);
 }
 
 // Usage in agent management
 public class AgentManager
 {
-    public async Task RefreshAgentCapabilities(string agentId)
+    public async Task RefreshAgentCapabilities(string agentName)
     {
         var provider = _serviceProvider.GetService<IRefreshableAgentPluginMetadataProvider>();
-        provider?.RefreshMetadata(agentId);
+        provider?.RefreshMetadata(agentName);
         
         // Rebuild agent's kernel plugins
-        await RebuildAgentPlugins(agentId);
+        await RebuildAgentPlugins(agentName);
     }
 }
 ```
@@ -441,7 +437,7 @@ public class AgentGroupChatBuilder
     {
         var agents = definitions.Select(def => 
         {
-            var kernel = CreateKernelForAgent(def.AgentId, def.Role);
+            var kernel = CreateKernelForAgent(def.Name);
             
             return new ChatCompletionAgent
             {
@@ -454,11 +450,11 @@ public class AgentGroupChatBuilder
         return new AgentGroupChat(agents);
     }
     
-    private Kernel CreateKernelForAgent(string agentId, string role)
+    private Kernel CreateKernelForAgent(string agentName)
     {
         var builder = Kernel.CreateBuilder();
         // Configure with agent-specific metadata
-        var kernel = builder.BuildForAgent(agentId, role, _metadataProvider);
+        var kernel = builder.BuildForAgent(agentName, _metadataProvider);
         return kernel;
     }
 }
@@ -475,7 +471,7 @@ kernelBuilder.Plugins.AddFromTypeWithMetadata<MyPlugin>();
 
 // After: Agent-aware plugin registration (backward compatible)
 services.AddSingleton<IAgentPluginMetadataProvider, MyAgentMetadataProvider>();
-var agentKernel = kernelBuilder.BuildForAgent("agent-1", "assistant", metadataProvider);
+var agentKernel = kernelBuilder.BuildForAgent("AssistantAgent", metadataProvider);
 agentKernel.Plugins.AddFromTypeForAgent<MyPlugin>();
 ```
 
@@ -487,10 +483,10 @@ The existing `IPluginMetadataProvider` interface remains fully supported for non
 
 ```csharp
 [Fact]
-public void AgentMetadataProvider_ReturnsRoleSpecificMetadata()
+public void AgentMetadataProvider_ReturnsAgentSpecificMetadata()
 {
     var provider = new RoleBasedMetadataProvider();
-    var context = new AgentContext { AgentRole = "customer-support" };
+    var context = new AgentContext { AgentName = "CustomerSupportAgent" };
     
     var plugin = CreateTestPlugin();
     var metadata = CreateTestMetadata("GetTemperature");
@@ -509,10 +505,10 @@ public void AgentMetadataProvider_ReturnsRoleSpecificMetadata()
 public async Task AgentWithCustomMetadata_ExecutesFunctionWithCorrectContext()
 {
     var metadataProvider = new TestAgentMetadataProvider();
-    var kernel = CreateAgentKernel("test-agent", "tester", metadataProvider);
+    var kernel = CreateAgentKernel("TestAgent", metadataProvider);
     
     kernel.Plugins.AddFromTypeForAgent<TestPlugin>(
-        new AgentContext { AgentRole = "tester" }
+        new AgentContext { AgentName = "TestAgent" }
     );
     
     var agent = new ChatCompletionAgent
@@ -534,8 +530,8 @@ public async Task AgentWithCustomMetadata_ExecutesFunctionWithCorrectContext()
 [Fact]
 public async Task AgentGroupChat_EachAgentSeesCustomizedPlugins()
 {
-    var agent1 = CreateAgentWithRole("agent-1", "role-a");
-    var agent2 = CreateAgentWithRole("agent-2", "role-b");
+    var agent1 = CreateAgentWithName("AgentOne");
+    var agent2 = CreateAgentWithName("AgentTwo");
     
     var groupChat = new AgentGroupChat(agent1, agent2);
     
