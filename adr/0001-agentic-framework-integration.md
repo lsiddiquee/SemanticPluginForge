@@ -54,10 +54,10 @@ kernel.Plugins.AddFromType<WeatherPlugin>();
 
 ### Goals
 
-1. **Dynamic Agent Capabilities**: Allow runtime modification of agent plugin metadata without redeploying agents
-2. **Agent-Specific Plugins**: Enable different agents to see different metadata for the same plugin based on their name or identity
-3. **Simplified Configuration**: Support per-agent plugin configurations using agent name as the primary identifier
-4. **Multi-Agent Scenarios**: Facilitate metadata customization in agent group chats and collaboration scenarios
+1. **Dynamic Plugin Capabilities**: Allow runtime modification of plugin metadata without redeploying
+2. **Context-Aware Plugins**: Enable plugins to have different metadata based on the context in which they're registered (agent, tenant, user, etc.)
+3. **Extensible Context**: Support custom context types through `IPluginContext` interface for various scenarios beyond agents
+4. **Simplified API**: Context is passed at plugin registration time, eliminating the need for global state or kernel-level context storage
 
 ### Architecture
 
@@ -77,118 +77,134 @@ graph TD
 
 ### Proposed API Extensions
 
-#### 1. Agent-Aware Metadata Provider
+#### 1. Plugin Context Interface
 
-Extend `IPluginMetadataProvider` to support agent-specific context:
+Introduce a generic context interface for extensibility:
 
 ```csharp
-public interface IAgentPluginMetadataProvider : IPluginMetadataProvider
+/// <summary>
+/// Base interface for plugin context that can carry custom metadata
+/// </summary>
+public interface IPluginContext
 {
     /// <summary>
-    /// Gets plugin metadata specific to an agent context
+    /// Custom properties for extensibility
     /// </summary>
-    PluginMetadata? GetPluginMetadata(KernelPlugin plugin, AgentContext context);
-    
-    /// <summary>
-    /// Gets function metadata specific to an agent context
-    /// </summary>
-    FunctionMetadata? GetFunctionMetadata(
-        KernelPlugin plugin, 
-        KernelFunctionMetadata metadata, 
-        AgentContext context);
+    IDictionary<string, object> Properties { get; set; }
 }
 
-public class AgentContext
+/// <summary>
+/// Agent-specific context implementation
+/// </summary>
+public class AgentContext : IPluginContext
 {
     public string AgentName { get; set; }
     public IDictionary<string, object> Properties { get; set; }
 }
 ```
 
-#### 2. Agent Kernel Builder Extensions
+#### 2. Context-Aware Metadata Provider
 
-New extension methods for building agent kernels with metadata support:
+Extend `IPluginMetadataProvider` to support context-specific metadata:
 
 ```csharp
-public static class AgentKernelBuilderExtensions
+public interface IContextAwarePluginMetadataProvider : IPluginMetadataProvider
 {
     /// <summary>
-    /// Creates a kernel for an agent with metadata provider support resolved from DI
+    /// Gets plugin metadata based on provided context
     /// </summary>
-    public static Kernel BuildForAgent(
-        this IKernelBuilder builder,
-        string agentName)
-    {
-        var kernel = builder.Build();
-        
-        // Register agent context for plugin resolution
-        kernel.Data[AgentContextKey] = new AgentContext
-        {
-            AgentName = agentName
-        };
-        
-        return kernel;
-    }
+    PluginMetadata? GetPluginMetadata(KernelPlugin plugin, IPluginContext context);
     
     /// <summary>
-    /// Creates a kernel for an agent with explicit metadata provider (non-DI scenario)
+    /// Gets function metadata based on provided context
     /// </summary>
-    public static Kernel BuildForAgent(
-        this IKernelBuilder builder,
-        string agentName,
-        IAgentPluginMetadataProvider metadataProvider)
-    {
-        var kernel = builder.Build();
-        
-        // Register agent context and metadata provider for plugin resolution
-        kernel.Data[AgentContextKey] = new AgentContext
-        {
-            AgentName = agentName
-        };
-        kernel.Data[MetadataProviderKey] = metadataProvider;
-        
-        return kernel;
-    }
-    
+    FunctionMetadata? GetFunctionMetadata(
+        KernelPlugin plugin, 
+        KernelFunctionMetadata metadata, 
+        IPluginContext context);
+}
+
+// Convenience type alias for agent scenarios
+public interface IAgentPluginMetadataProvider : IContextAwarePluginMetadataProvider
+{
+}
+```
+
+#### 3. Plugin Registration Extensions
+
+New extension methods for registering plugins with context:
+
+```csharp
+public static class ContextAwarePluginExtensions
+{
     /// <summary>
-    /// Adds plugins to agent kernel with agent-specific metadata
+    /// Adds plugins with context-aware metadata (DI scenario)
     /// </summary>
-    public static IKernelBuilderPlugins AddFromTypeForAgent<T>(
+    public static IKernelBuilderPlugins AddFromTypeWithContext<T>(
         this IKernelBuilderPlugins plugins,
-        AgentContext agentContext,
+        IPluginContext context,
         string? pluginName = null)
     {
-        // Implementation using PluginBuilder with agent context
-        // Resolves IAgentPluginMetadataProvider from DI
+        plugins.Services.AddSingleton(sp => 
+        {
+            var metadataProvider = sp.GetRequiredService<IContextAwarePluginMetadataProvider>();
+            return CreatePluginWithContext<T>(sp, context, metadataProvider, pluginName);
+        });
+        
         return plugins;
+    }
+    
+    /// <summary>
+    /// Adds plugins with context-aware metadata (non-DI scenario)
+    /// </summary>
+    public static KernelPlugin AddFromTypeWithContext<T>(
+        this ICollection<KernelPlugin> plugins,
+        IServiceProvider serviceProvider,
+        IPluginContext context,
+        IContextAwarePluginMetadataProvider metadataProvider,
+        string? pluginName = null)
+    {
+        var plugin = CreatePluginWithContext<T>(serviceProvider, context, metadataProvider, pluginName);
+        plugins.Add(plugin);
+        return plugin;
+    }
+    
+    // Convenience methods for agent scenarios
+    public static IKernelBuilderPlugins AddFromTypeForAgent<T>(
+        this IKernelBuilderPlugins plugins,
+        string agentName,
+        string? pluginName = null)
+    {
+        return plugins.AddFromTypeWithContext<T>(
+            new AgentContext { AgentName = agentName },
+            pluginName
+        );
     }
 }
 ```
 
-#### 3. Agent Plugin Registration
+#### 4. Usage Examples
 
-Simplified registration for agent-specific plugins:
+**DI Scenario** (recommended approach):
 
 ```csharp
 // Configure services with metadata provider
-services.AddSingleton<IAgentPluginMetadataProvider, RoleBasedMetadataProvider>();
+services.AddSingleton<IContextAwarePluginMetadataProvider, RoleBasedMetadataProvider>();
 
-// Build kernel with DI - metadata provider resolved automatically
+// Build kernel normally
 var kernelBuilder = Kernel.CreateBuilder()
     .AddOpenAIChatCompletion(modelId, apiKey);
 
-var agentKernel = kernelBuilder.BuildForAgent("CustomerSupportAgent");
+// Register plugins with agent context - metadata provider resolved from DI
+kernelBuilder.Plugins.AddFromTypeForAgent<WeatherPlugin>("CustomerSupportAgent");
 
-// Plugins automatically customized based on agent context
-agentKernel.Plugins.AddFromTypeForAgent<WeatherPlugin>(
-    new AgentContext { AgentName = "CustomerSupportAgent" }
-);
+var kernel = kernelBuilder.Build();
 
 var agent = new ChatCompletionAgent
 {
-    Name = "SupportAgent",
+    Name = "CustomerSupportAgent",
     Instructions = "You help customers with weather information.",
-    Kernel = agentKernel
+    Kernel = kernel
 };
 ```
 
@@ -196,22 +212,43 @@ var agent = new ChatCompletionAgent
 
 ```csharp
 var metadataProvider = new RoleBasedMetadataProvider();
-var kernelBuilder = Kernel.CreateBuilder()
-    .AddOpenAIChatCompletion(modelId, apiKey);
+var kernel = Kernel.CreateBuilder()
+    .AddOpenAIChatCompletion(modelId, apiKey)
+    .Build();
 
-// Pass metadata provider explicitly for non-DI scenarios
-var agentKernel = kernelBuilder.BuildForAgent("CustomerSupportAgent", metadataProvider);
-
-agentKernel.Plugins.AddFromTypeForAgent<WeatherPlugin>(
-    new AgentContext { AgentName = "CustomerSupportAgent" }
+// Register plugins with explicit metadata provider and context
+var agentContext = new AgentContext { AgentName = "CustomerSupportAgent" };
+kernel.Plugins.AddFromTypeWithContext<WeatherPlugin>(
+    kernel.Services,
+    agentContext,
+    metadataProvider
 );
 
 var agent = new ChatCompletionAgent
 {
-    Name = "SupportAgent",
+    Name = "CustomerSupportAgent",
     Instructions = "You help customers with weather information.",
-    Kernel = agentKernel
+    Kernel = kernel
 };
+```
+
+**Custom Context Scenario** (using IPluginContext for custom scenarios):
+
+```csharp
+// Define custom context
+public class TenantContext : IPluginContext
+{
+    public string TenantId { get; set; }
+    public string SubscriptionLevel { get; set; }
+    public IDictionary<string, object> Properties { get; set; }
+}
+
+// Use custom context
+services.AddSingleton<IContextAwarePluginMetadataProvider, TenantAwareMetadataProvider>();
+
+kernelBuilder.Plugins.AddFromTypeWithContext<WeatherPlugin>(
+    new TenantContext { TenantId = "tenant-123", SubscriptionLevel = "premium" }
+);
 ```
 
 ### Use Cases
@@ -226,7 +263,7 @@ public class RoleBasedMetadataProvider : IAgentPluginMetadataProvider
     public FunctionMetadata? GetFunctionMetadata(
         KernelPlugin plugin, 
         KernelFunctionMetadata metadata,
-        AgentContext context)
+        IPluginContext context)
     {
         if (plugin.Name == "WeatherPlugin" && metadata.Name == "GetTemperature")
         {
@@ -309,10 +346,11 @@ public class DynamicCapabilityMetadataProvider : IAgentPluginMetadataProvider
     public FunctionMetadata? GetFunctionMetadata(
         KernelPlugin plugin,
         KernelFunctionMetadata metadata,
-        AgentContext context)
+        IPluginContext context)
     {
         // Check if agent has permission for this capability
-        if (!_capabilityManager.HasCapability(context.AgentName, $"{plugin.Name}.{metadata.Name}"))
+        var agentContext = context as AgentContext;
+        if (!_capabilityManager.HasCapability(agentContext.AgentName, $"{plugin.Name}.{metadata.Name}"))
         {
             return new FunctionMetadata(metadata.Name)
             {
@@ -321,7 +359,7 @@ public class DynamicCapabilityMetadataProvider : IAgentPluginMetadataProvider
         }
         
         // Customize based on agent's capability level
-        var level = _capabilityManager.GetCapabilityLevel(context.AgentName, plugin.Name);
+        var level = _capabilityManager.GetCapabilityLevel(agentContext.AgentName, plugin.Name);
         return level switch
         {
             "basic" => CreateBasicMetadata(metadata),
@@ -358,17 +396,18 @@ public class ChannelAwareMetadataProvider : IAgentPluginMetadataProvider
     public FunctionMetadata? GetFunctionMetadata(
         KernelPlugin plugin,
         KernelFunctionMetadata metadata,
-        AgentContext context)
+        IPluginContext context)
     {
         // Customize based on agent name or additional properties
+        var agentContext = context as AgentContext;
         var channelRole = context.Properties?["ChannelRole"] as string;
         
-        if (channelRole == "sender" || context.AgentName.Contains("Sender"))
+        if (channelRole == "sender" || agentContext?.AgentName.Contains("Sender") == true)
         {
             // Sender agents have send capabilities
             return CreateSenderMetadata(metadata);
         }
-        else if (channelRole == "receiver" || context.AgentName.Contains("Receiver"))
+        else if (channelRole == "receiver" || agentContext?.AgentName.Contains("Receiver") == true)
         {
             // Receiver agents have receive capabilities
             return CreateReceiverMetadata(metadata);
@@ -381,30 +420,23 @@ public class ChannelAwareMetadataProvider : IAgentPluginMetadataProvider
 
 ### Implementation Considerations
 
-#### 1. Agent Context Propagation
+#### 1. Context Passing
 
-**Challenge**: How to propagate agent context through the plugin resolution pipeline?
+**Challenge**: How to pass context to the metadata provider during plugin registration?
 
-**Solution**: Use Kernel.Data dictionary or a new AgentContext property:
+**Solution**: Pass context as a parameter during plugin registration. The context is captured at registration time and used when building the plugin:
 
 ```csharp
-public static class KernelExtensions
-{
-    private const string AgentContextKey = "SemanticPluginForge.AgentContext";
-    
-    public static void SetAgentContext(this Kernel kernel, AgentContext context)
-    {
-        kernel.Data[AgentContextKey] = context;
-    }
-    
-    public static AgentContext? GetAgentContext(this Kernel kernel)
-    {
-        return kernel.Data.TryGetValue(AgentContextKey, out var context) 
-            ? context as AgentContext 
-            : null;
-    }
-}
+// Context is passed during registration, not stored in kernel
+kernelBuilder.Plugins.AddFromTypeForAgent<WeatherPlugin>("CustomerSupportAgent");
+
+// Or with custom context
+kernelBuilder.Plugins.AddFromTypeWithContext<WeatherPlugin>(
+    new TenantContext { TenantId = "tenant-123" }
+);
 ```
+
+This approach is cleaner as it avoids global state and makes the context explicit at the point of plugin registration.
 
 #### 2. Performance Optimization
 
@@ -421,9 +453,10 @@ public class CachedAgentPluginMetadataProvider : IAgentPluginMetadataProvider
     public FunctionMetadata? GetFunctionMetadata(
         KernelPlugin plugin,
         KernelFunctionMetadata metadata,
-        AgentContext context)
+        IPluginContext context)
     {
-        var cacheKey = $"{context.AgentName}:{plugin.Name}:{metadata.Name}";
+        var agentContext = context as AgentContext;
+        var cacheKey = $"{agentContext?.AgentName}:{plugin.Name}:{metadata.Name}";
         
         return _cache.GetOrCreate(cacheKey, entry =>
         {
@@ -505,14 +538,20 @@ public class AgentGroupChatBuilder
 For existing SemanticPluginForge users, the migration to agent support is straightforward:
 
 ```csharp
-// Before: Standard plugin registration
+// Before: Standard plugin registration (context-unaware)
 services.AddSingleton<IPluginMetadataProvider, MyMetadataProvider>();
 kernelBuilder.Plugins.AddFromTypeWithMetadata<MyPlugin>();
 
-// After: Agent-aware plugin registration (backward compatible)
-services.AddSingleton<IAgentPluginMetadataProvider, MyAgentMetadataProvider>();
-var agentKernel = kernelBuilder.BuildForAgent("AssistantAgent");
-agentKernel.Plugins.AddFromTypeForAgent<MyPlugin>();
+// After: Context-aware plugin registration
+services.AddSingleton<IContextAwarePluginMetadataProvider, MyContextAwareProvider>();
+
+// For agents
+kernelBuilder.Plugins.AddFromTypeForAgent<MyPlugin>("AssistantAgent");
+
+// For custom contexts
+kernelBuilder.Plugins.AddFromTypeWithContext<MyPlugin>(
+    new TenantContext { TenantId = "tenant-123" }
+);
 ```
 
 The existing `IPluginMetadataProvider` interface remains fully supported for non-agent scenarios.
@@ -603,28 +642,36 @@ public async Task AgentGroupChat_EachAgentSeesCustomizedPlugins()
 
 ### Positive
 
-1. **Enhanced Agent Specialization**: Different agents can have specialized views of the same plugins, enabling more sophisticated multi-agent scenarios
-2. **Runtime Flexibility**: Agent capabilities can be changed without redeployment, reducing downtime and enabling dynamic adaptation
-3. **Security and Governance**: Fine-grained control over which agents can access which functions improves security posture
-4. **Backward Compatibility**: Existing SemanticPluginForge functionality remains fully supported for non-agent scenarios
-5. **Natural Extension**: The agent-aware pattern extends naturally from the existing `IPluginMetadataProvider` architecture
-6. **Simplified Management**: Centralized metadata management for agent fleets reduces configuration complexity
+1. **Extensible Design**: `IPluginContext` interface enables custom context types beyond agents (tenants, users, sessions, etc.)
+2. **No Global State**: Context is passed at plugin registration, avoiding kernel-level state storage
+3. **Runtime Flexibility**: Plugin metadata can be customized based on context without redeployment
+4. **Type Safety**: Strongly-typed context objects with intellisense support
+5. **Backward Compatibility**: Existing `IPluginMetadataProvider` remains fully supported for context-unaware scenarios
+6. **Clear Separation**: Context is explicit at registration time, making the flow easier to understand
+7. **Agent Support**: Natural support for agent scenarios through `AgentContext` implementation
 
 ### Negative
 
-1. **Additional Complexity**: Introduces new concepts (AgentContext, IAgentPluginMetadataProvider) that developers need to learn
-2. **Performance Considerations**: Agent context propagation and metadata resolution could impact performance in high-throughput scenarios (mitigated by caching)
-3. **Testing Overhead**: Multi-agent scenarios require more comprehensive testing strategies
-4. **Migration Effort**: Existing users wanting agent support will need to adopt new APIs
+1. **Additional Complexity**: Introduces new concepts (`IPluginContext`, `IContextAwarePluginMetadataProvider`) that developers need to learn
+2. **Plugin Instance Per Context**: Each context creates a new plugin instance, which could increase memory usage in scenarios with many contexts
+3. **Testing Overhead**: Context-aware scenarios require more comprehensive testing strategies
+4. **Migration Effort**: Existing users wanting context support will need to adopt new interfaces
 
 ### Neutral
 
 1. **API Surface Expansion**: New interfaces and extension methods increase the overall API surface of the library
-2. **Documentation Requirements**: Requires comprehensive documentation of agent-specific features and patterns
-3. **Dependency on Semantic Kernel**: Tighter coupling to Semantic Kernel's agentic framework evolution
+2. **Documentation Requirements**: Requires comprehensive documentation of context-aware features and patterns
+3. **Flexibility vs. Simplicity**: More flexible design comes with additional concepts to understand
 
 ## Conclusion
 
-Integrating SemanticPluginForge with Semantic Kernel's agentic framework enables powerful new scenarios for building autonomous AI systems. By providing dynamic, context-aware metadata customization, developers can create sophisticated multi-agent applications with fine-grained control over agent capabilities and behaviors.
+The proposed `IPluginContext` interface provides a flexible, extensible foundation for context-aware plugin metadata customization. While designed with Semantic Kernel's agentic framework in mind, the design is general enough to support various scenarios including multi-tenancy, user-specific configurations, and session-based customizations.
 
-The proposed design maintains backward compatibility with existing SemanticPluginForge functionality while adding powerful new capabilities for the agentic paradigm. The agent-aware metadata provider pattern extends naturally from the existing architecture, making adoption straightforward for current users.
+Key advantages of this approach:
+
+1. **Simplicity**: Context is passed at plugin registration time, eliminating the need for complex state management
+2. **Extensibility**: Custom context types can be created for any scenario by implementing `IPluginContext`
+3. **Type Safety**: Strongly-typed context objects provide intellisense and compile-time checking
+4. **Backward Compatibility**: Existing `IPluginMetadataProvider` continues to work for context-unaware scenarios
+
+The design maintains the core principles of SemanticPluginForge while extending it to support modern multi-agent and context-aware scenarios. By avoiding global state and keeping context explicit at registration time, the API is cleaner and easier to reason about.
